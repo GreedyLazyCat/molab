@@ -120,6 +120,50 @@ class Fraction {
     }
   }
 
+  bool operator >(Object other) {
+    if (other is Fraction) {
+      return numerator * other.denominator > other.numerator * denominator;
+    } else if (other is double) {
+      return numerator > other * denominator;
+    } else {
+      throw FractionException(
+          "Cannot compare Fraction with this type of object");
+    }
+  }
+
+  bool operator <(Object other) {
+    if (other is Fraction) {
+      return numerator * other.denominator < other.numerator * denominator;
+    } else if (other is double) {
+      return numerator < other * denominator;
+    } else {
+      throw FractionException(
+          "Cannot compare Fraction with this type of object");
+    }
+  }
+
+  bool operator >=(Object other) {
+    if (other is Fraction) {
+      return numerator * other.denominator >= other.numerator * denominator;
+    } else if (other is double) {
+      return numerator >= other * denominator;
+    } else {
+      throw FractionException(
+          "Cannot compare Fraction with this type of object");
+    }
+  }
+
+  bool operator <=(Object other) {
+    if (other is Fraction) {
+      return numerator * other.denominator <= other.numerator * denominator;
+    } else if (other is double) {
+      return numerator <= other * denominator;
+    } else {
+      throw FractionException(
+          "Cannot compare Fraction with this type of object");
+    }
+  }
+
   @override
   String toString() {
     // TODO: implement toString
