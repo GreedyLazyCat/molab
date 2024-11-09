@@ -1,15 +1,32 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:developer';
+import 'dart:io';
 
+import 'package:molib/src/exception/fraction_exception.dart';
 import 'package:molib/src/exception/fraction_parse_exception.dart';
 
 class Fraction {
-  int numerator;
-  int denominator;
-  Fraction(
-    this.numerator,
-    this.denominator,
+  int _numerator;
+  int _denominator;
+
+  Fraction._def(
+    this._numerator,
+    this._denominator,
   );
+
+  factory Fraction(int numerator, int denominator) {
+    if (denominator == 0) {
+      throw FractionException("Знаменатель не может быть равен 0.");
+    }
+    final sign = numerator.sign * denominator.sign;
+    return Fraction._def(numerator.abs() * sign, denominator.abs());
+  }
+
+  ///Числитель дроби
+  int get numerator => _numerator;
+
+  ///Знаменатель дроби
+  int get denominator => _denominator;
 
   ///Parses fraction from string.
   ///Must be in format 'x/y' where x is numerator and y is denominator
@@ -31,21 +48,30 @@ class Fraction {
   }
 
   Fraction reduced() {
-    final gcd = numerator.gcd(denominator);
-    final reNum = numerator / gcd;
-    final reDe = denominator / gcd;
-    return Fraction(reNum.toInt(), reDe.toInt());
+    final gcd = _numerator.gcd(_denominator);
+    final reNum = _numerator / gcd;
+    final reDe = _denominator / gcd;
+    final sign = (reNum.sign * reDe.sign).toInt();
+    return Fraction(reNum.toInt().abs() * sign, reDe.toInt().abs());
   }
 
   Fraction _add(Fraction other) {
-    if (denominator == other.denominator) {
-      return Fraction(numerator + other.numerator, denominator);
+    if (_denominator == other._denominator) {
+      return Fraction(_numerator + other._numerator, _denominator);
     }
-    final gcd = denominator.gcd(other.denominator);
-    final lcm = (denominator * other.denominator) / gcd;
-    final newNum = numerator * (lcm / denominator) +
-        other.numerator * (lcm / other.denominator);
-    return Fraction(newNum.toInt(), lcm.toInt());
+    return Fraction(
+        _numerator * other._denominator + other._numerator * _denominator,
+        other._denominator * _denominator);
+  }
+
+  Fraction _sub(Fraction other) {
+    if (_denominator == other._denominator) {
+      return Fraction(_numerator - other._numerator, _denominator);
+    }
+
+    return Fraction(
+        numerator * other.denominator - other.numerator * denominator,
+        other.denominator * denominator);
   }
 
   Fraction operator +(Object other) {
@@ -60,11 +86,11 @@ class Fraction {
 
   Fraction operator *(Object other) {
     if (other is Fraction) {
-      final newDen = other.denominator * denominator;
-      final newNum = other.numerator * numerator;
+      final newDen = other._denominator * _denominator;
+      final newNum = other._numerator * _numerator;
       return Fraction(newNum, newDen);
     } else if (other is int) {
-      return Fraction(numerator * other, denominator);
+      return Fraction(_numerator * other, _denominator);
     } else {
       throw Exception();
     }
@@ -72,11 +98,11 @@ class Fraction {
 
   Fraction operator /(Object other) {
     if (other is Fraction) {
-      final newDen = other.denominator * numerator;
-      final newNum = other.numerator * denominator;
+      final newDen = other._denominator * _numerator;
+      final newNum = other._numerator * _denominator;
       return Fraction(newNum, newDen);
     } else if (other is int) {
-      return Fraction(numerator * other, denominator);
+      return Fraction(_numerator * other, _denominator);
     } else {
       throw Exception();
     }
@@ -84,11 +110,11 @@ class Fraction {
 
   Fraction operator -(Object other) {
     if (other is Fraction) {
-      return _add(other);
+      return _sub(other);
     } else if (other is int) {
-      return _add(Fraction(other, 1));
+      return _sub(Fraction(other, 1));
     } else if (other is double) {
-      return _add(Fraction(other.toInt(), 1));
+      return _sub(Fraction(other.toInt(), 1));
     } else {
       throw Exception("Fraction can't be added to this type of object");
     }
@@ -97,11 +123,11 @@ class Fraction {
   @override
   String toString() {
     // TODO: implement toString
-    return "$numerator/$denominator";
+    return "$_numerator/$_denominator";
   }
 
   double toDouble() {
-    return numerator / denominator;
+    return _numerator / _denominator;
   }
 
   int toInt() {
