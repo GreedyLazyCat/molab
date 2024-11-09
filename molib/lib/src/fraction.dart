@@ -70,6 +70,30 @@ class Fraction {
     }
   }
 
+  Fraction operator /(Object other) {
+    if (other is Fraction) {
+      final newDen = other.denominator * numerator;
+      final newNum = other.numerator * denominator;
+      return Fraction(newNum, newDen);
+    } else if (other is int) {
+      return Fraction(numerator * other, denominator);
+    } else {
+      throw Exception();
+    }
+  }
+
+  Fraction operator -(Object other) {
+    if (other is Fraction) {
+      return _add(other);
+    } else if (other is int) {
+      return _add(Fraction(other, 1));
+    } else if (other is double) {
+      return _add(Fraction(other.toInt(), 1));
+    } else {
+      throw Exception("Fraction can't be added to this type of object");
+    }
+  }
+
   @override
   String toString() {
     // TODO: implement toString
