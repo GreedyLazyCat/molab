@@ -54,7 +54,7 @@ class ArtificialSolver {
   ///Метод делает следующий шаг в решении метода исскуственного базиса.
   ///[selectedSupElem] - индексы опорного элемента, если передан null
   ///элемент будет выбран автоматически
-  void nextStep(StepIndices? selectedSupElem) {
+  void nextStep([StepIndices? selectedSupElem]) {
     StepIndices? supElem = selectedSupElem ?? findFirstSupElement();
 
     if (supElem == null) {
@@ -75,6 +75,7 @@ class ArtificialSolver {
         : Fraction(1, 1) / lastStepMatrix[supElem.row][supElem.col];
     newStepMatrix[supElem.row][supElem.col] = supElemNewValue;
 
+    //Умножение строки опорного элемента
     for (var col = 0; col < varCount + 1; col++) {
       if (supElem.col == col) {
         continue;
@@ -83,6 +84,7 @@ class ArtificialSolver {
       newStepMatrix[supElem.row][col] = currElemValue * supElemNewValue;
     }
 
+    //Умножение столбца опорного элемента
     for (var row = 0; row < restrictionCount + 1; row++) {
       if (supElem.row == row) {
         continue;
@@ -92,25 +94,28 @@ class ArtificialSolver {
       newStepMatrix[row][supElem.col] =
           currElemValue * (minusOne * supElemNewValue);
     }
-    /*
-    for (var i = 0; i < varCount; i++) {
-      for (var j = 0; j < restrictionCount; j++) {
-        final currElemValue = lastStepMatrix[i][j];
-        if (i == supElem.row && j == supElem.col) {
-          continue;
-        }
-        if (i == supElem.row) {
-          lastStepMatrix[i][j] = currElemValue * supElemNewValue;
-          continue;
-        }
-        if (j == supElem.row) {
-          lastStepMatrix[i][j] = currElemValue * (-1 * supElemNewValue);
-          continue;
-        }
+
+    //Вычисления оставшихся строк
+    for (var i = 0; i < restrictionCount + 1; i++) {
+      if (i == supElem.row) {
+        continue;
       }
-    }*/
+      for (var j = 0; j < varCount + 1; j++) {
+        if (j == supElem.col) {
+          continue;
+        }
+        final prevElemValue = lastStepMatrix[i][j];
+        final prevElemColValue = lastStepMatrix[i][supElem.col];
+        final newElemRowValue = newStepMatrix[supElem.row][j];
+        newStepMatrix[i][j] =
+            prevElemValue - (newElemRowValue * prevElemColValue);
+        // print(
+        //     "prevElemValue:$prevElemValue, newElemColValue:$prevElemColValue, newElemRowValue:$newElemRowValue, newStepMatrix[i][j]:${newStepMatrix[i][j] }");
+      }
+    }
 
     history.add(StepInfo(
+        elemCoord: supElem,
         stepMatrix: newStepMatrix,
         rowIndices: rowIndices,
         colIndices: colIndices));
@@ -167,7 +172,7 @@ class ArtificialSolver {
 
     for (var row = 0; row < (restrictionCount); row++) {
       final currentSupElemValue = stepMatrix[row][col];
-      if (currentSupElemValue == 0) {
+      if (currentSupElemValue <= 0) {
         continue;
       }
       final currentSupElemDivided =
@@ -185,6 +190,7 @@ class ArtificialSolver {
   String? supElementValidity(StepIndices elemIndices) {
     final stepMatrix = history.last.stepMatrix;
     final elemValue = stepMatrix[elemIndices.row][elemIndices.col];
+    final elemDividedValue = stepMatrix[elemIndices.row][varCount] / elemValue;
     final funcColCoef = stepMatrix[restrictionCount][elemIndices.col];
 
     if (funcColCoef > 0) {
@@ -196,8 +202,10 @@ class ArtificialSolver {
     }
 
     final supElemIndices = findSupElementInColumn(elemIndices.col);
+    final supElem = stepMatrix[supElemIndices!.row][supElemIndices.col];
+    final supElemDivided = stepMatrix[supElemIndices!.row][varCount] / supElem;
 
-    if (stepMatrix[supElemIndices!.row][supElemIndices.col] != elemValue) {
+    if (supElemDivided != elemDividedValue) {
       return "Отношение опорного элемента к свободному члену должно быть минимально";
     }
   }
@@ -208,7 +216,6 @@ class ArtificialSolver {
     return initRestrictMatrix
         .map((e) => e.map((to) {
               if (mode == MatrixMode.fraction) {
-                print('asdf');
                 return Fraction(to, 1);
               } else if (mode == MatrixMode.floating) {
                 return to.toDouble();
@@ -231,7 +238,6 @@ class ArtificialSolver {
     for (var i = 0; i < varCount + 1; i++) {
       dynamic sum = stepMatrix[0][i];
       for (var j = 1; j < restrictionCount; j++) {
-        print(sum.runtimeType.toString());
         sum += stepMatrix[j][i];
       }
       sum *= -1;
@@ -255,31 +261,5 @@ class ArtificialSolver {
         //посчитать этот самый базис
         break;
     }
-  }
-
-  String tempToString() {
-    final last = history.last;
-    var result = "";
-    for (var row in last.stepMatrix) {
-      String rowString = "";
-      for (var elem in row) {
-        rowString += "${elem.toString()} ";
-      }
-      rowString += "\n";
-      result += rowString;
-    }
-
-    result += "\nИндексы переменных\n";
-
-    for (var index in last.rowIndices) {
-      result += "$index ";
-    }
-
-    result += "\nИндексы базисных переменных\n";
-
-    for (var index in last.colIndices) {
-      result += "$index ";
-    }
-    return result;
   }
 }

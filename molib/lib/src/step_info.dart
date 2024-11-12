@@ -1,6 +1,7 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:math';
 
+import 'package:molib/molib.dart';
 import 'package:molib/src/artificial_solver.dart';
 
 ///Класс для хранения информации о шаге
@@ -28,7 +29,15 @@ class StepInfo {
   String stepMatrixToString() {
     String result = "";
     for (var row in stepMatrix) {
-      result += "$row\n";
+      for (var elem in row) {
+        if (elem is Fraction) {
+          result += "${elem.reduced()} ";
+        } else {
+          result += "$elem ";
+        }
+      }
+
+      result += "\n";
     }
     return result;
   }
