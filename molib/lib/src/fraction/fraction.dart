@@ -2,8 +2,8 @@
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:molib/src/exception/fraction_exception.dart';
-import 'package:molib/src/exception/fraction_parse_exception.dart';
+import 'package:molib/src/fraction/exception/fraction_exception.dart';
+import 'package:molib/src/fraction/exception/fraction_parse_exception.dart';
 
 class Fraction {
   int _numerator;
@@ -98,8 +98,8 @@ class Fraction {
 
   Fraction operator /(Object other) {
     if (other is Fraction) {
-      final newDen = other._denominator * _numerator;
-      final newNum = other._numerator * _denominator;
+      final newNum = _numerator * other.denominator;
+      final newDen = _denominator * other.numerator;
       return Fraction(newNum, newDen);
     } else if (other is int) {
       return Fraction(_numerator * other, _denominator);
@@ -113,17 +113,29 @@ class Fraction {
       return _sub(other);
     } else if (other is int) {
       return _sub(Fraction(other, 1));
-    } else if (other is double) {
+    } else if (other is num) {
       return _sub(Fraction(other.toInt(), 1));
     } else {
       throw Exception("Fraction can't be added to this type of object");
     }
   }
 
+  @override
+  bool operator ==(Object other) {
+    if (other is Fraction) {
+      return numerator * other.denominator == other.numerator * denominator;
+    } else if (other is num) {
+      return numerator == other * denominator;
+    } else {
+      throw FractionException(
+          "Cannot compare Fraction with ${other.runtimeType}");
+    }
+  }
+
   bool operator >(Object other) {
     if (other is Fraction) {
       return numerator * other.denominator > other.numerator * denominator;
-    } else if (other is double) {
+    } else if (other is num) {
       return numerator > other * denominator;
     } else {
       throw FractionException(
@@ -134,7 +146,7 @@ class Fraction {
   bool operator <(Object other) {
     if (other is Fraction) {
       return numerator * other.denominator < other.numerator * denominator;
-    } else if (other is double) {
+    } else if (other is num) {
       return numerator < other * denominator;
     } else {
       throw FractionException(
@@ -145,29 +157,29 @@ class Fraction {
   bool operator >=(Object other) {
     if (other is Fraction) {
       return numerator * other.denominator >= other.numerator * denominator;
-    } else if (other is double) {
+    } else if (other is num) {
       return numerator >= other * denominator;
     } else {
       throw FractionException(
-          "Cannot compare Fraction with this type of object");
+          "Cannot compare Fraction with ${other.runtimeType}");
     }
   }
 
   bool operator <=(Object other) {
     if (other is Fraction) {
       return numerator * other.denominator <= other.numerator * denominator;
-    } else if (other is double) {
+    } else if (other is num) {
       return numerator <= other * denominator;
     } else {
       throw FractionException(
-          "Cannot compare Fraction with this type of object");
+          "Cannot compare Fraction with ${other.runtimeType}");
     }
   }
 
   @override
   String toString() {
     // TODO: implement toString
-    return "$_numerator/$_denominator";
+    return (denominator == 1) ? "$_numerator" : "$_numerator/$_denominator";
   }
 
   double toDouble() {
