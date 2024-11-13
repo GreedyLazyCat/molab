@@ -70,12 +70,19 @@ class ArtificialSolver {
     final List<int> rowIndices = List.from(lastStep.rowIndices);
     final List<int> colIndices = List.from(lastStep.colIndices);
 
+    //Смена индексов переменных
+    final swap = rowIndices[supElem.row];
+    rowIndices[supElem.row] = colIndices[supElem.col];
+    colIndices[supElem.col] = swap;
+
+    //Вычисление значения опорного элемента
     dynamic supElemNewValue = (mode == MatrixMode.floating)
         ? 1 / lastStepMatrix[supElem.row][supElem.col]
         : Fraction(1, 1) / lastStepMatrix[supElem.row][supElem.col];
+
     newStepMatrix[supElem.row][supElem.col] = supElemNewValue;
 
-    //Умножение строки опорного элемента
+    //Умножение строки опорного элемента (стоит выделить в функцию?)
     for (var col = 0; col < varCount + 1; col++) {
       if (supElem.col == col) {
         continue;
@@ -84,7 +91,7 @@ class ArtificialSolver {
       newStepMatrix[supElem.row][col] = currElemValue * supElemNewValue;
     }
 
-    //Умножение столбца опорного элемента
+    //Умножение столбца опорного элемента (стоит выделить в функцию?)
     for (var row = 0; row < restrictionCount + 1; row++) {
       if (supElem.row == row) {
         continue;
@@ -109,8 +116,6 @@ class ArtificialSolver {
         final newElemRowValue = newStepMatrix[supElem.row][j];
         newStepMatrix[i][j] =
             prevElemValue - (newElemRowValue * prevElemColValue);
-        // print(
-        //     "prevElemValue:$prevElemValue, newElemColValue:$prevElemColValue, newElemRowValue:$newElemRowValue, newStepMatrix[i][j]:${newStepMatrix[i][j] }");
       }
     }
 
@@ -118,7 +123,8 @@ class ArtificialSolver {
         elemCoord: supElem,
         stepMatrix: newStepMatrix,
         rowIndices: rowIndices,
-        colIndices: colIndices));
+        colIndices: colIndices,
+        stepType: StepType.artificial));
   }
 
   StepMatrix generateZeroMatrix() {
@@ -247,7 +253,10 @@ class ArtificialSolver {
     stepMatrix.add(lastRow);
 
     final step = StepInfo(
-        stepMatrix: stepMatrix, rowIndices: rowIndices, colIndices: colIndices);
+        stepMatrix: stepMatrix,
+        rowIndices: rowIndices,
+        colIndices: colIndices,
+        stepType: StepType.artificial);
     history.add(step);
   }
 

@@ -4,6 +4,14 @@ import 'dart:math';
 import 'package:molib/molib.dart';
 import 'package:molib/src/artificial_solver.dart';
 
+enum StepType {
+  ///На этом шаге еще вычисляется базис
+  artificial,
+
+  ///На этом шаге уже вычисляется сама задача
+  main
+}
+
 ///Класс для хранения информации о шаге
 ///[stepMatrix] - матрица решения на текущем шаге
 class StepInfo {
@@ -19,11 +27,14 @@ class StepInfo {
   ///Индексы базисных переменных
   final List<int> colIndices;
 
+  final StepType stepType;
+
   StepInfo({
     this.elemCoord,
     required this.stepMatrix,
     required this.rowIndices,
     required this.colIndices,
+    required this.stepType
   });
 
   String stepMatrixToString() {
