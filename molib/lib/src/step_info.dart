@@ -8,8 +8,14 @@ enum StepType {
   ///На этом шаге еще вычисляется базис
   artificial,
 
+  ///Вычисление базиса завершено, нужно переходить к решению задачи
+  artificialFinal,
+
   ///На этом шаге уже вычисляется сама задача
-  main
+  main,
+
+  ///Система решена
+  solved
 }
 
 ///Класс для хранения информации о шаге
@@ -27,15 +33,14 @@ class StepInfo {
   ///Индексы базисных переменных
   final List<int> colIndices;
 
-  final StepType stepType;
+  final StepType type;
 
-  StepInfo({
-    this.elemCoord,
-    required this.stepMatrix,
-    required this.rowIndices,
-    required this.colIndices,
-    required this.stepType
-  });
+  StepInfo(
+      {this.elemCoord,
+      required this.stepMatrix,
+      required this.rowIndices,
+      required this.colIndices,
+      required this.type});
 
   String stepMatrixToString() {
     String result = "";

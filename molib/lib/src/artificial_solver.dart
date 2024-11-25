@@ -3,10 +3,10 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:molib/molib.dart';
-import 'package:molib/src/solver_exception.dart';
+import 'package:molib/src/exception/solver_exception.dart';
 import 'package:molib/src/step_info.dart';
 
-enum MatrixMode { fraction, floating }
+enum MatrixMode { fraction, double }
 
 ///Режим решения
 enum BasisMode {
@@ -55,6 +55,10 @@ class ArtificialSolver {
   ///[selectedSupElem] - индексы опорного элемента, если передан null
   ///элемент будет выбран автоматически
   void nextStep([StepIndices? selectedSupElem]) {
+    if (lastStep.type == StepType.solved) {
+      throw SolverException("Система уже решена");
+    }
+
     StepIndices? supElem = selectedSupElem ?? findFirstSupElement();
 
     if (supElem == null) {
@@ -66,7 +70,6 @@ class ArtificialSolver {
       throw SolverException(validation);
     }
 
-    StepMatrix newStepMatrix = generateZeroMatrix();
     final List<int> rowIndices = List.from(lastStep.rowIndices);
     final List<int> colIndices = List.from(lastStep.colIndices);
 
@@ -75,10 +78,30 @@ class ArtificialSolver {
     rowIndices[supElem.row] = colIndices[supElem.col];
     colIndices[supElem.col] = swap;
 
-    //Вычисление значения опорного элемента
-    dynamic supElemNewValue = (mode == MatrixMode.floating)
-        ? 1 / lastStepMatrix[supElem.row][supElem.col]
-        : Fraction(1, 1) / lastStepMatrix[supElem.row][supElem.col];
+    final newStepMatrix = calculateStepMatrix(supElem, lastStepMatrix);
+
+    // final stepType = getStepType(newStepMatrix);
+
+    final newStep = StepInfo(
+        elemCoord: supElem,
+        stepMatrix: newStepMatrix,
+        rowIndices: rowIndices,
+        colIndices: colIndices,
+        type: StepType.artificial);
+
+    //Проверка, что все хорошо в решении системы
+
+    history.add(newStep);
+  }
+
+  ///Считает основную матрицу на основе переданного элемента и матрицы
+  StepMatrix calculateStepMatrix(
+      StepIndices supElem, StepMatrix prevStepMatrix) {
+    StepMatrix newStepMatrix = generateZeroMatrix();
+//Вычисление значения опорного элемента
+    dynamic supElemNewValue = (mode == MatrixMode.double)
+        ? 1 / prevStepMatrix[supElem.row][supElem.col]
+        : Fraction(1, 1) / prevStepMatrix[supElem.row][supElem.col];
 
     newStepMatrix[supElem.row][supElem.col] = supElemNewValue;
 
@@ -87,7 +110,7 @@ class ArtificialSolver {
       if (supElem.col == col) {
         continue;
       }
-      final currElemValue = lastStepMatrix[supElem.row][col];
+      final currElemValue = prevStepMatrix[supElem.row][col];
       newStepMatrix[supElem.row][col] = currElemValue * supElemNewValue;
     }
 
@@ -96,8 +119,8 @@ class ArtificialSolver {
       if (supElem.row == row) {
         continue;
       }
-      final currElemValue = lastStepMatrix[row][supElem.col];
-      dynamic minusOne = (mode == MatrixMode.floating) ? -1 : Fraction(-1, 1);
+      final currElemValue = prevStepMatrix[row][supElem.col];
+      dynamic minusOne = (mode == MatrixMode.double) ? -1 : Fraction(-1, 1);
       newStepMatrix[row][supElem.col] =
           currElemValue * (minusOne * supElemNewValue);
     }
@@ -111,20 +134,19 @@ class ArtificialSolver {
         if (j == supElem.col) {
           continue;
         }
-        final prevElemValue = lastStepMatrix[i][j];
-        final prevElemColValue = lastStepMatrix[i][supElem.col];
+        final prevElemValue = prevStepMatrix[i][j];
+        final prevElemColValue = prevStepMatrix[i][supElem.col];
         final newElemRowValue = newStepMatrix[supElem.row][j];
         newStepMatrix[i][j] =
             prevElemValue - (newElemRowValue * prevElemColValue);
       }
     }
+    return newStepMatrix;
+  }
 
-    history.add(StepInfo(
-        elemCoord: supElem,
-        stepMatrix: newStepMatrix,
-        rowIndices: rowIndices,
-        colIndices: colIndices,
-        stepType: StepType.artificial));
+  ///Проверяет тип шага по его матрице
+  StepType getStepType(StepMatrix stepMatrix) {
+    throw UnimplementedError();
   }
 
   StepMatrix generateZeroMatrix() {
@@ -134,7 +156,7 @@ class ArtificialSolver {
               if (mode == MatrixMode.fraction) {
                 return Fraction(0, 1);
               }
-              if (mode == MatrixMode.floating) {
+              if (mode == MatrixMode.double) {
                 return 0.0;
               }
             }));
@@ -223,7 +245,7 @@ class ArtificialSolver {
         .map((e) => e.map((to) {
               if (mode == MatrixMode.fraction) {
                 return Fraction(to, 1);
-              } else if (mode == MatrixMode.floating) {
+              } else if (mode == MatrixMode.double) {
                 return to.toDouble();
               }
             }).toList())
@@ -256,7 +278,7 @@ class ArtificialSolver {
         stepMatrix: stepMatrix,
         rowIndices: rowIndices,
         colIndices: colIndices,
-        stepType: StepType.artificial);
+        type: StepType.artificial);
     history.add(step);
   }
 

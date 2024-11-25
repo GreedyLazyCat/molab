@@ -28,11 +28,7 @@ void main() {
   solver.nextStep(StepIndices(row: 1, col: 0));
   solver.nextStep(StepIndices(row: 0, col: 1));
 
-  // for (var step in solver.history) {
-  //   print(step);
-  // }
   for (var step in solver.history) {
     print(step.stepMatrixToString());
   }
-  // print(solver.supElementValidity(StepIndices(row: 1, col: 0)));
 }

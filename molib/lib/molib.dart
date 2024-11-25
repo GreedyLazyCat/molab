@@ -5,4 +5,5 @@ library;
 
 export 'src/fraction/fraction.dart' show Fraction;
 export 'src/artificial_solver.dart' show ArtificialSolver, MatrixMode;
+export 'src/mx_entry.dart' show MxEntry;
 
