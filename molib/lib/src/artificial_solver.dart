@@ -80,14 +80,14 @@ class ArtificialSolver {
 
     final newStepMatrix = calculateStepMatrix(supElem, lastStepMatrix);
 
-    // final stepType = getStepType(newStepMatrix);
+    final stepType = getStepType(newStepMatrix, rowIndices, colIndices);
 
     final newStep = StepInfo(
         elemCoord: supElem,
         stepMatrix: newStepMatrix,
         rowIndices: rowIndices,
         colIndices: colIndices,
-        type: StepType.artificial);
+        type: stepType);
 
     //Проверка, что все хорошо в решении системы
 
@@ -145,10 +145,35 @@ class ArtificialSolver {
   }
 
   ///Проверяет тип шага по его матрице
-  StepType getStepType(StepMatrix stepMatrix) {
-    throw UnimplementedError();
+  StepType getStepType(
+      StepMatrix stepMatrix, List<int> rowIndicies, List<int> colIndicies) {
+    if (lastStep.type == StepType.artificial) {
+      final lastRow = stepMatrix.last;
+      final negativeCheck = lastRow.indexWhere((elem) => elem < 0);
+      if (negativeCheck != -1) {
+        return StepType.artificial;
+      }
+      if (lastRow.last > 0) {
+        throw SolverException("СЛАУ не совместна");
+      }
+      if (lastRow.last < 0) {
+        throw SolverException("Что-то пошло не так");
+      }
+
+      ///Проверка ушли ли все исскуственные переменные или нужно делать холостой шаг
+      final colSet = history.first.colIndices.toSet();
+      final notContainArtificialVars = !colIndicies.any(colSet.contains);
+
+      if (notContainArtificialVars) {
+        return StepType.artificialFinal;
+      }
+      
+    }
+    return StepType.artificial;
   }
 
+  ///Генерирует пустую матрицу с дополнительной строкой для функции
+  ///и доп стобцом для свободных членов
   StepMatrix generateZeroMatrix() {
     return List.generate(
         restrictionCount + 1,

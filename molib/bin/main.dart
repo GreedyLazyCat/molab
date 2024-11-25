@@ -25,10 +25,12 @@ void main() {
       funcCoef: funcCoef);
 
   solver.initialStep();
+  
   solver.nextStep(StepIndices(row: 1, col: 0));
   solver.nextStep(StepIndices(row: 0, col: 1));
 
   for (var step in solver.history) {
+    print(step.type.name);
     print(step.stepMatrixToString());
   }
 }
