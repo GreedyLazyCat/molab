@@ -27,6 +27,7 @@ void main() {
     solver.nextStep();
     solver.nextStep();
     solver.nextStep();
+    solver.nextStep();
   } on SolverException catch (e) {
     print(e.message);
   }

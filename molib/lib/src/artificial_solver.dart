@@ -64,6 +64,7 @@ class ArtificialSolver {
     if (lastStep.type == StepType.artificialFinal) {
       final newStep = makeStepAfterArtificialFinal(lastStep);
       history.add(newStep);
+      return;
     }
 
     StepIndices? supElem = selectedSupElem ?? findFirstSupElement();
@@ -121,11 +122,25 @@ class ArtificialSolver {
         step.colIndices.length + 1, newRowIndices.length + 1);
 
     for (var col = 0; col < (newRowIndices.length + 1); col++) {
-      var colSum = (mode == MatrixMode.fraction) ? Fraction(0, 1) : 0;
+      dynamic colSum = (mode == MatrixMode.fraction) ? Fraction(0, 1) : 0;
+      final prevMatrixColIndex = (col == newRowIndices.length)
+          ? step.rowIndices.length
+          : step.rowIndices.indexOf(newRowIndices[col]);
+
       for (var row = 0; row < (step.colIndices.length + 1); row++) {
-        final rowColCoef = funcCoef[step.colIndices[row] - 1] * -1;
+        if (row == step.colIndices.length) {
+          newMatrix[row][col] = colSum;
+          continue;
+        }
+        final funcCoefIndex = step.colIndices[row] - 1;
+        final rowColCoef = funcCoef[funcCoefIndex];
+        final prevMatrixValue = step.stepMatrix[row][prevMatrixColIndex];
+
+        newMatrix[row][col] = prevMatrixValue;
+        colSum += prevMatrixValue * rowColCoef;
       }
     }
+    newMatrix[restrictionCount][newRowIndices.length] *= -1;
     return StepInfo(
         stepMatrix: newMatrix,
         rowIndices: newRowIndices,
@@ -252,6 +267,7 @@ class ArtificialSolver {
         continue;
       }
       result = findSupElementInColumn(col);
+
       if (result == null) {
         continue;
       }
