@@ -11,13 +11,13 @@ void main() {
     [-1, 1, 0, 0, -1, 4],
   ];
 
-  final funcCoef = [-1, -4, -1, 3];
+  final funcCoef = [2, -2, -1, -2, 3, 0];
 
   final solver = ArtificialSolver(
       mode: MatrixMode.fraction,
       basisMode: BasisMode.artificial,
-      varCount: 5,
-      restrictionCount: 3,
+      initialVarCount: 5,
+      initialRestrictionCount: 3,
       initRestrictMatrix: initRestrictMatrix,
       funcCoef: funcCoef);
 

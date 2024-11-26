@@ -25,9 +25,9 @@ class ArtificialSolver {
 
   final BasisMode basisMode;
 
-  final int varCount;
+  final int initialVarCount;
 
-  final int restrictionCount;
+  final int initialRestrictionCount;
 
   final IntMatrix initRestrictMatrix;
 
@@ -38,15 +38,17 @@ class ArtificialSolver {
   ArtificialSolver({
     required this.mode,
     required this.basisMode,
-    required this.varCount,
-    required this.restrictionCount,
+    required this.initialVarCount,
+    required this.initialRestrictionCount,
     required this.initRestrictMatrix,
     required this.funcCoef,
-  }) : assert(restrictionCount == initRestrictMatrix.length);
+  }) : assert(initialRestrictionCount == initRestrictMatrix.length);
 
   StepMatrix get lastStepMatrix => history.last.stepMatrix;
   StepInfo get lastStep => history.last;
   StepInfo get firstStep => history.first;
+  int get varCount => history.last.rowIndices.length;
+  int get restrictionCount => history.last.colIndices.length;
 
   void clearHistory() {
     history.clear();
@@ -58,6 +60,10 @@ class ArtificialSolver {
   void nextStep([StepIndices? selectedSupElem]) {
     if (lastStep.type == StepType.solved) {
       throw SolverException("Система уже решена");
+    }
+    if (lastStep.type == StepType.artificialFinal) {
+      final newStep = makeStepAfterArtificialFinal(lastStep);
+      history.add(newStep);
     }
 
     StepIndices? supElem = selectedSupElem ?? findFirstSupElement();
@@ -103,10 +109,35 @@ class ArtificialSolver {
     history.add(newStep);
   }
 
+  StepInfo makeStepAfterArtificialFinal(StepInfo step) {
+    if (step.type != StepType.artificialFinal) {
+      throw SolverException("Шаг не финальный после нахождения базиса ");
+    }
+    final rowSet = step.rowIndices.toSet();
+    final initialColSet = firstStep.colIndices.toSet();
+
+    final newRowIndices = rowSet.difference(initialColSet).toList();
+    final newMatrix = generateZeroMatrix(
+        step.colIndices.length + 1, newRowIndices.length + 1);
+
+    for (var col = 0; col < (newRowIndices.length + 1); col++) {
+      var colSum = (mode == MatrixMode.fraction) ? Fraction(0, 1) : 0;
+      for (var row = 0; row < (step.colIndices.length + 1); row++) {
+        final rowColCoef = funcCoef[step.colIndices[row] - 1] * -1;
+      }
+    }
+    return StepInfo(
+        stepMatrix: newMatrix,
+        rowIndices: newRowIndices,
+        colIndices: step.colIndices,
+        type: StepType.main);
+  }
+
   ///Считает основную матрицу на основе переданного элемента и матрицы
   StepMatrix calculateStepMatrix(
       StepIndices supElem, StepMatrix prevStepMatrix) {
-    StepMatrix newStepMatrix = generateZeroMatrix();
+    StepMatrix newStepMatrix =
+        generateZeroMatrix(restrictionCount + 1, varCount + 1);
 //Вычисление значения опорного элемента
     dynamic supElemNewValue = (mode == MatrixMode.double)
         ? 1 / prevStepMatrix[supElem.row][supElem.col]
@@ -200,10 +231,10 @@ class ArtificialSolver {
 
   ///Генерирует пустую матрицу с дополнительной строкой для функции
   ///и доп стобцом для свободных членов
-  StepMatrix generateZeroMatrix() {
+  StepMatrix generateZeroMatrix(int rowCount, int colCount) {
     return List.generate(
-        restrictionCount + 1,
-        (index) => List.generate(varCount + 1, (index) {
+        rowCount,
+        (index) => List.generate(colCount, (index) {
               if (mode == MatrixMode.fraction) {
                 return Fraction(0, 1);
               }
@@ -312,17 +343,18 @@ class ArtificialSolver {
   ///Изначальный шаг решения для метода исскуственного базиса
   ///Т.к. не требуется решения системы методом гаусса
   void initialArtificialStep() {
-    final List<int> rowIndices = List.generate(varCount, (index) => index + 1);
-    final List<int> colIndices =
-        List.generate(restrictionCount, (index) => varCount + index + 1);
+    final List<int> rowIndices =
+        List.generate(initialVarCount, (index) => index + 1);
+    final List<int> colIndices = List.generate(
+        initialRestrictionCount, (index) => initialVarCount + index + 1);
     //TODO: добавить проверку соответствия varCount, restrictionCount
     //с размерами матрицы
     final StepMatrix stepMatrix = convertInitialMatrix();
     final List<dynamic> lastRow = [];
 
-    for (var i = 0; i < varCount + 1; i++) {
+    for (var i = 0; i < initialVarCount + 1; i++) {
       dynamic sum = stepMatrix[0][i];
-      for (var j = 1; j < restrictionCount; j++) {
+      for (var j = 1; j < initialRestrictionCount; j++) {
         sum += stepMatrix[j][i];
       }
       sum *= -1;
