@@ -46,6 +46,7 @@ class ArtificialSolver {
 
   StepMatrix get lastStepMatrix => history.last.stepMatrix;
   StepInfo get lastStep => history.last;
+  StepInfo get firstStep => history.first;
 
   void clearHistory() {
     history.clear();
@@ -74,20 +75,28 @@ class ArtificialSolver {
     final List<int> colIndices = List.from(lastStep.colIndices);
 
     //Смена индексов переменных
-    final swap = rowIndices[supElem.row];
-    rowIndices[supElem.row] = colIndices[supElem.col];
-    colIndices[supElem.col] = swap;
+    final swap = rowIndices[supElem.col];
+    rowIndices[supElem.col] = colIndices[supElem.row];
+    colIndices[supElem.row] = swap;
 
     final newStepMatrix = calculateStepMatrix(supElem, lastStepMatrix);
 
-    final stepType = getStepType(newStepMatrix, rowIndices, colIndices);
+    StepType stepType;
+    String? error;
 
+    try {
+      stepType = getStepType(newStepMatrix, rowIndices, colIndices);
+    } on SolverException catch (e) {
+      stepType = StepType.error;
+      error = e.message;
+    }
+    lastStep.elemCoord = supElem;
     final newStep = StepInfo(
-        elemCoord: supElem,
         stepMatrix: newStepMatrix,
         rowIndices: rowIndices,
         colIndices: colIndices,
-        type: stepType);
+        type: stepType,
+        error: error);
 
     //Проверка, что все хорошо в решении системы
 
@@ -144,20 +153,37 @@ class ArtificialSolver {
     return newStepMatrix;
   }
 
+  String? validateStep(
+      StepMatrix stepMatrix, List<int> rowIndicies, List<int> colIndicies) {
+    if (lastStep.type == StepType.artificial) {
+      final lastRow = stepMatrix.last;
+
+      if (lastRow.last > 0) {
+        return "СЛАУ не совместна";
+      }
+      if (lastRow.last < 0) {
+        return "";
+      }
+    }
+
+    return null;
+  }
+
   ///Проверяет тип шага по его матрице
   StepType getStepType(
       StepMatrix stepMatrix, List<int> rowIndicies, List<int> colIndicies) {
     if (lastStep.type == StepType.artificial) {
       final lastRow = stepMatrix.last;
       final negativeCheck = lastRow.indexWhere((elem) => elem < 0);
-      if (negativeCheck != -1) {
+      if (negativeCheck != -1 && negativeCheck != varCount) {
         return StepType.artificial;
       }
       if (lastRow.last > 0) {
         throw SolverException("СЛАУ не совместна");
       }
       if (lastRow.last < 0) {
-        throw SolverException("Что-то пошло не так");
+        throw SolverException(
+            "Что-то пошло не так. Отрицательных коэфициентов нет, но значение функции отрицательно.");
       }
 
       ///Проверка ушли ли все исскуственные переменные или нужно делать холостой шаг
@@ -167,9 +193,9 @@ class ArtificialSolver {
       if (notContainArtificialVars) {
         return StepType.artificialFinal;
       }
-      
     }
-    return StepType.artificial;
+
+    return StepType.main;
   }
 
   ///Генерирует пустую матрицу с дополнительной строкой для функции
@@ -195,9 +221,15 @@ class ArtificialSolver {
         continue;
       }
       result = findSupElementInColumn(col);
-      if (result != null) {
-        return result;
+      if (result == null) {
+        continue;
       }
+      if (lastStep.type == StepType.artificial &&
+          (!firstStep.colIndices.contains(lastStep.colIndices[result.row]) ||
+              firstStep.colIndices.contains(lastStep.rowIndices[result.col]))) {
+        continue;
+      }
+      return result;
     }
     return null;
   }

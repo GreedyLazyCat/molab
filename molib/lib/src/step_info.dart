@@ -5,8 +5,14 @@ import 'package:molib/molib.dart';
 import 'package:molib/src/artificial_solver.dart';
 
 enum StepType {
+  error,
+
   ///На этом шаге еще вычисляется базис
   artificial,
+
+  ///На этом шаге уже посчитан базис, но нужно выполнить холостые
+  ///ходы, чтобы заменить переменные
+  artificialIdle,
 
   ///Вычисление базиса завершено, нужно переходить к решению задачи
   artificialFinal,
@@ -22,7 +28,7 @@ enum StepType {
 ///[stepMatrix] - матрица решения на текущем шаге
 class StepInfo {
   ///Индексы выбранного опорного элемента на этом шаге,
-  final StepIndices? elemCoord;
+  StepIndices? elemCoord;
 
   ///Матрица ограничений на этом шаге
   final StepMatrix stepMatrix;
@@ -35,12 +41,15 @@ class StepInfo {
 
   final StepType type;
 
+  String? error;
+
   StepInfo(
       {this.elemCoord,
       required this.stepMatrix,
       required this.rowIndices,
       required this.colIndices,
-      required this.type});
+      required this.type,
+      this.error});
 
   String stepMatrixToString() {
     String result = "";
@@ -50,6 +59,46 @@ class StepInfo {
           result += "${elem.reduced()} ";
         } else {
           result += "$elem ";
+        }
+      }
+
+      result += "\n";
+    }
+    return result;
+  }
+
+  ///Сделано на скорую руку, ужасно
+  String fullMatrixToString() {
+    String result = "";
+    String space = "";
+    final colMax = colIndices
+        .reduce((acc, elem) => (acc.abs() > elem.abs()) ? acc : elem)
+        .toString()
+        .length;
+
+    for (var i = 0; i < colMax + 1; i++) {
+      space += " ";
+    }
+    result += space;
+    for (var elem in rowIndices) {
+      result += "$elem ";
+    }
+
+    result += "\n";
+
+    for (var i = 0; i < stepMatrix.length; i++) {
+      final row = stepMatrix[i];
+      if (i < colIndices.length) {
+        result += "${colIndices[i]} ";
+      }
+      if (i == stepMatrix.length - 1) {
+        result += space;
+      }
+      for (var j = 0; j < row.length; j++) {
+        if (row[j] is Fraction) {
+          result += "${row[j].reduced()} ";
+        } else {
+          result += "${row[j]}";
         }
       }
 

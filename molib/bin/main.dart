@@ -1,36 +1,42 @@
 import 'dart:math';
 
-import 'package:molib/molib.dart';
 import 'package:molib/src/artificial_solver.dart';
+import 'package:molib/src/exception/solver_exception.dart';
 import 'package:molib/src/step_info.dart';
 
 void main() {
-  Fraction f1 = Fraction(-1, 1);
-  Fraction f2 = Fraction(-1, 2);
-  Fraction f3 = Fraction(-5, 2);
-
   final initRestrictMatrix = [
-    [1, -1, 1, 3],
-    [2, -5, -1, 0],
+    [-2, 1, -1, -1, 0, 1],
+    [1, -1, 2, 1, 1, 4],
+    [-1, 1, 0, 0, -1, 4],
   ];
 
-  final funcCoef = [-1, -4, -1];
+  final funcCoef = [-1, -4, -1, 3];
 
   final solver = ArtificialSolver(
       mode: MatrixMode.fraction,
       basisMode: BasisMode.artificial,
-      varCount: 3,
-      restrictionCount: 2,
+      varCount: 5,
+      restrictionCount: 3,
       initRestrictMatrix: initRestrictMatrix,
       funcCoef: funcCoef);
 
-  solver.initialStep();
-  
-  solver.nextStep(StepIndices(row: 1, col: 0));
-  solver.nextStep(StepIndices(row: 0, col: 1));
+  try {
+    solver.initialStep();
+    solver.nextStep();
+    solver.nextStep();
+    solver.nextStep();
+    solver.nextStep();
+  } on SolverException catch (e) {
+    print(e.message);
+  }
+  // solver.nextStep();
 
   for (var step in solver.history) {
-    print(step.type.name);
-    print(step.stepMatrixToString());
+    print("${step.type.name} -------");
+    print(step.elemCoord.toString());
+    print(step.error ?? "No errors");
+    print("-------------------------");
+    print(step.fullMatrixToString());
   }
 }
