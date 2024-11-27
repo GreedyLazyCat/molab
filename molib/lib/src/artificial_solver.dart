@@ -92,7 +92,8 @@ class ArtificialSolver {
     String? error;
 
     try {
-      stepType = getStepType(newStepMatrix, rowIndices, colIndices);
+      stepType =
+          getStepType(newStepMatrix, rowIndices, colIndices, lastStep.type);
     } on SolverException catch (e) {
       stepType = StepType.error;
       error = e.message;
@@ -126,21 +127,29 @@ class ArtificialSolver {
       final prevMatrixColIndex = (col == newRowIndices.length)
           ? step.rowIndices.length
           : step.rowIndices.indexOf(newRowIndices[col]);
-
+      // print("---------------------------------");
+      // print("indices: $newRowIndices");
+      // print("prevMatrixColIndex: $prevMatrixColIndex");
       for (var row = 0; row < (step.colIndices.length + 1); row++) {
         if (row == step.colIndices.length) {
-          newMatrix[row][col] = colSum;
+          // print("funcCoef: ${funcCoef[prevMatrixColIndex]}");
+          newMatrix[row][col] = colSum + funcCoef[prevMatrixColIndex];
+          // print("colSum: ${newMatrix[row][col]}");
           continue;
         }
         final funcCoefIndex = step.colIndices[row] - 1;
-        final rowColCoef = funcCoef[funcCoefIndex];
+        final rowCoef = funcCoef[funcCoefIndex] * -1;
         final prevMatrixValue = step.stepMatrix[row][prevMatrixColIndex];
 
+        // print("funcCoefIndex: $funcCoefIndex");
+        // print("prevMatrixValue: $prevMatrixValue");
+        // print("rowCoef: $rowCoef");
         newMatrix[row][col] = prevMatrixValue;
-        colSum += prevMatrixValue * rowColCoef;
+        colSum += prevMatrixValue * rowCoef;
       }
     }
-    newMatrix[restrictionCount][newRowIndices.length] *= -1;
+    // newMatrix[restrictionCount][newRowIndices.length] *= -1;
+
     return StepInfo(
         stepMatrix: newMatrix,
         rowIndices: newRowIndices,
@@ -215,13 +224,36 @@ class ArtificialSolver {
     return null;
   }
 
-  ///Проверяет тип шага по его матрице
-  StepType getStepType(
-      StepMatrix stepMatrix, List<int> rowIndicies, List<int> colIndicies) {
-    if (lastStep.type == StepType.artificial) {
+  ///Проверяет есть ли в матрице, где должны быть коэффициенты функции
+  ///отрицательные элементы, кроме значения самой функции.
+  bool isStepHasNegativeFuncCoef(StepMatrix stepMatrix, int stepVarCount) {
+    final lastRow = stepMatrix.last;
+    final negativeCheck = lastRow.indexWhere((elem) => elem < 0);
+    if (negativeCheck != -1 && negativeCheck != stepVarCount) {
+      return true;
+    }
+    return false;
+  }
+
+  ///Проверяет тип шага по его матрице.
+  ///В случае, если в матрице есть ошибка - выбрасывается эксепшн с детализацией ошибки.
+  StepType getStepType(StepMatrix stepMatrix, List<int> rowIndices,
+      List<int> colIndices, StepType? lastStepType) {
+    if (lastStepType == null) {
+      for (var col = 0; col < rowIndices.length; col++) {
+        final nonZeroElement = _findFirstNonZeroPositiveElemInCol(
+            col, stepMatrix, rowIndices.length);
+        final lastElem = stepMatrix.last[col];
+        if (nonZeroElement == null && lastElem < 0) {
+          throw SolverException("Функция неограничена снизу");
+        }
+      }
+      return StepType.initial;
+    }
+    if (lastStepType == StepType.artificial ||
+        lastStepType == StepType.initial) {
       final lastRow = stepMatrix.last;
-      final negativeCheck = lastRow.indexWhere((elem) => elem < 0);
-      if (negativeCheck != -1 && negativeCheck != varCount) {
+      if (isStepHasNegativeFuncCoef(stepMatrix, rowIndices.length)) {
         return StepType.artificial;
       }
       if (lastRow.last > 0) {
@@ -234,14 +266,20 @@ class ArtificialSolver {
 
       ///Проверка ушли ли все исскуственные переменные или нужно делать холостой шаг
       final colSet = history.first.colIndices.toSet();
-      final notContainArtificialVars = !colIndicies.any(colSet.contains);
+      final notContainArtificialVars = !colIndices.any(colSet.contains);
 
       if (notContainArtificialVars) {
         return StepType.artificialFinal;
       }
     }
-
-    return StepType.main;
+    if (lastStepType == StepType.artificialFinal ||
+        lastStepType == StepType.main) {
+      if (isStepHasNegativeFuncCoef(stepMatrix, rowIndices.length)) {
+        return StepType.main;
+      }
+      return StepType.solved;
+    }
+    return StepType.error;
   }
 
   ///Генерирует пустую матрицу с дополнительной строкой для функции
@@ -281,9 +319,10 @@ class ArtificialSolver {
     return null;
   }
 
-  StepIndices? _findFirstNonZeroPositiveElemInCol(int col) {
-    for (var row = 0; row < (restrictionCount); row++) {
-      if (lastStepMatrix[row][col] > 0) {
+  StepIndices? _findFirstNonZeroPositiveElemInCol(
+      int col, StepMatrix stepMatrix, int rowCount) {
+    for (var row = 0; row < (rowCount); row++) {
+      if (stepMatrix[row][col] > 0) {
         return StepIndices(row: row, col: col);
       }
     }
@@ -294,7 +333,8 @@ class ArtificialSolver {
   ///В случае, если не найден - [null]
   StepIndices? findSupElementInColumn(int col) {
     final stepMatrix = history.last.stepMatrix;
-    var elem = _findFirstNonZeroPositiveElemInCol(col);
+    var elem = _findFirstNonZeroPositiveElemInCol(
+        col, lastStepMatrix, restrictionCount);
     if (elem == null) {
       return null;
     }
@@ -379,11 +419,21 @@ class ArtificialSolver {
 
     stepMatrix.add(lastRow);
 
+    StepType stepType;
+    String? error;
+    try {
+      stepType = getStepType(stepMatrix, rowIndices, colIndices, null);
+    } on SolverException catch (e) {
+      stepType = StepType.error;
+      error = e.message;
+    }
+
     final step = StepInfo(
         stepMatrix: stepMatrix,
         rowIndices: rowIndices,
         colIndices: colIndices,
-        type: StepType.artificial);
+        type: stepType,
+        error: error);
     history.add(step);
   }
 

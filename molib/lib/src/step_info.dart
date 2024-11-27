@@ -5,6 +5,9 @@ import 'package:molib/molib.dart';
 import 'package:molib/src/artificial_solver.dart';
 
 enum StepType {
+  initial,
+
+  ///Возможно рудиментарный тип
   error,
 
   ///На этом шаге еще вычисляется базис

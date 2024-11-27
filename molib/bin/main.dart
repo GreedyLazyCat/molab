@@ -6,17 +6,17 @@ import 'package:molib/src/step_info.dart';
 
 void main() {
   final initRestrictMatrix = [
-    [-2, 1, -1, -1, 0, 1],
-    [1, -1, 2, 1, 1, 4],
-    [-1, 1, 0, 0, -1, 4],
+    [2, -1, 1, -2, 1, 1, 1],
+    [-3, 1, 0, 1, -1, 1, 2],
+    [-5, 1, -2, 1, 0, -1, 3],
   ];
 
-  final funcCoef = [2, -2, -1, -2, 3, 0];
+  final funcCoef = [-5, 2, -2, 4, -1, -2, 0];
 
   final solver = ArtificialSolver(
       mode: MatrixMode.fraction,
       basisMode: BasisMode.artificial,
-      initialVarCount: 5,
+      initialVarCount: 6,
       initialRestrictionCount: 3,
       initRestrictMatrix: initRestrictMatrix,
       funcCoef: funcCoef);
@@ -34,10 +34,15 @@ void main() {
   // solver.nextStep();
 
   for (var step in solver.history) {
-    print("${step.type.name} -------");
-    print(step.elemCoord.toString());
+    print("-------------------------");
+    print("Type: ${step.type.name}");
+    print("Coords: ${step.elemCoord.toString()}");
     print(step.error ?? "No errors");
     print("-------------------------");
     print(step.fullMatrixToString());
   }
+
+  // final step = solver.lastStep;
+  // final newStep = solver.makeStepAfterArtificialFinal(step);
+  // print(newStep.fullMatrixToString());
 }
