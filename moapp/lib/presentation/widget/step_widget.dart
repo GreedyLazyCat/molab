@@ -1,6 +1,10 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
+import 'package:moapp/core/solution_controller.dart';
+import 'package:moapp/presentation/page/conditions_tab.dart';
+import 'package:moapp/presentation/page/main_page.dart';
 import 'package:molib/molib.dart';
+import 'package:provider/provider.dart';
 
 class StepWidget extends StatefulWidget {
   const StepWidget({super.key, required this.stepInfo});
@@ -26,7 +30,10 @@ class _StepWidgetState extends State<StepWidget> {
     });
   }
 
-  List<DataRow> generateDataRows() {
+  List<DataRow> generateDataRows(SolutionController? controller) {
+    if (controller == null) {
+      return [];
+    }
     final rowCount = widget.stepInfo.stepMatrix.length;
     final varCount = widget.stepInfo.rowIndices.length;
     return List.generate(rowCount, (row) {
@@ -42,15 +49,50 @@ class _StepWidgetState extends State<StepWidget> {
             return const DataCell(Text(""));
           }
         }
+        final stepInfo = widget.stepInfo;
+        final isCurrentStep = controller.solver?.lastStep == stepInfo;
+        final stepMode = controller.solvingMode == SolvingMode.step;
+        final isNotVarCoef = row != (rowCount - 1) && col != (varCount + 1);
+        final isNotFinalStep = stepInfo.type != StepType.artificialFinal &&
+            stepInfo.type != StepType.solved;
 
-        return DataCell(Text("${widget.stepInfo.stepMatrix[row][col - 1]}"));
+        return DataCell(SelctableCell(
+          text: "${stepInfo.stepMatrix[row][col - 1]}",
+          clickable:
+              isCurrentStep && stepMode && isNotVarCoef && isNotFinalStep,
+          supElem:
+              (isCurrentStep) ? controller.currentElem : stepInfo.elemCoord,
+          cellIndices: StepIndices(row: row, col: col - 1),
+        ));
       }));
     });
   }
 
+  String getStepDescription() {
+    switch (widget.stepInfo.type) {
+      case StepType.artificial:
+        return "Решение в процессе";
+      case StepType.artificialFinal:
+        return "Нахождение базиса окончено - следующий шаг вычисление основной задачи";
+      case StepType.artificialIdle:
+        return "Начальный шаг решения";
+      case StepType.initial:
+        return "Начальный шаг решения";
+      case StepType.error:
+        return widget.stepInfo.error ?? "Ошибка";
+      default:
+        return "Нет описания для тип ${widget.stepInfo.type.name}";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return DataTable(columns: generateTableColumns(), rows: generateDataRows());
+    final controller = context.watch<SolutionController>();
+    return Column(children: [
+      Text("Описание шага: ${getStepDescription()}"),
+      DataTable(
+          columns: generateTableColumns(), rows: generateDataRows(controller))
+    ]);
   }
 }
 
@@ -58,30 +100,46 @@ class SelctableCell extends StatefulWidget {
   const SelctableCell({
     Key? key,
     required this.text,
-    required this.selectable,
+    required this.cellIndices,
+    required this.clickable,
     this.supElem,
-    required this.indices,
-    required this.onSelected,
   }) : super(key: key);
 
   final String text;
-  final bool selectable;
   final StepIndices? supElem;
-  final StepIndices? indices;
-  final Function(StepIndices) onSelected;
+  final StepIndices cellIndices;
+  final bool clickable;
 
   @override
   State<SelctableCell> createState() => _SelctableCellState();
 }
 
 class _SelctableCellState extends State<SelctableCell> {
+  void onTap(SolutionController? controller) {
+    if (controller == null) {
+      return;
+    }
+    controller.setCurrentElem(widget.cellIndices);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: (widget.indices == widget.supElem)
-          ? Colors.transparent
-          : Colors.greenAccent,
-      child: Text(widget.text),
+    final controller = context.read<SolutionController?>();
+    debugPrint("${widget.cellIndices}  ${widget.supElem}");
+    return InkWell(
+      onTap: (widget.clickable)
+          ? () {
+              onTap(controller);
+            }
+          : null,
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: (widget.cellIndices == widget.supElem)
+            ? Colors.greenAccent
+            : Colors.transparent,
+        child: Text(widget.text),
+      ),
     );
   }
 }

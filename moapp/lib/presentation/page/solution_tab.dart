@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:moapp/core/solution_controller.dart';
 import 'package:moapp/presentation/page/conditions_tab.dart';
+import 'package:moapp/presentation/page/main_page.dart';
 import 'package:moapp/presentation/widget/step_widget.dart';
 import 'package:molib/molib.dart';
+import 'package:provider/provider.dart';
 
 class SolutionTab extends StatefulWidget {
-  const SolutionTab({super.key, this.solver, this.solvingMode});
-
-  final ArtificialSolver? solver;
-  final SolvingMode? solvingMode;
+  const SolutionTab({
+    super.key,
+  });
 
   @override
   State<SolutionTab> createState() => _SolutionTabState();
@@ -18,30 +20,48 @@ class _SolutionTabState extends State<SolutionTab> {
   @override
   void initState() {
     super.initState();
-    if (widget.solver != null) {
-      widget.solver!.initialStep();
-    }
   }
 
   @override
   void didUpdateWidget(covariant SolutionTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.solver != null) {
-      widget.solver!.initialStep();
-      widget.solver!.nextStep();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget test = Text("No solver");
-    if (widget.solver != null) {
-      if (widget.solver!.history.isNotEmpty) {
-        test = StepWidget(stepInfo: widget.solver!.lastStep,);
-      }
+    final controller = context.watch<SolutionController?>();
+    if (controller == null) {
+      return const Text("Нет задачи");
     }
-    return Center(
-      child: test,
+    if (controller.solver == null) {
+      return const Text("Нет задачи");
+    }
+    final lastStep = controller.solver!.lastStep;
+
+    return Column(
+      children: [
+        Expanded(
+            flex: 8,
+            child: ListView.builder(
+                itemCount: controller.solver!.history.length,
+                itemBuilder: (context, index) {
+                  return StepWidget(
+                      stepInfo: controller.solver!.history[index]);
+                })),
+        Expanded(
+            child: Align(
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: [
+              ElevatedButton(
+                  onPressed: () {
+                    controller.nextStep();
+                  },
+                  child: const Text("Следующий шаг"))
+            ],
+          ),
+        ))
+      ],
     );
   }
 }
