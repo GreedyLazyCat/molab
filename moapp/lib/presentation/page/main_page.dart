@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:moapp/presentation/page/conditions_tab.dart';
 import 'package:moapp/presentation/page/solution_tab.dart';
+import 'package:molib/molib.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -11,6 +12,8 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int currentPage = 0;
+  SolvingMode? solvingMode;
+  ArtificialSolver? solver;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,7 +38,21 @@ class _MainPageState extends State<MainPage> {
           Expanded(
               child: IndexedStack(
             index: currentPage,
-            children: const [ConditionsTab(), SolutionTab()],
+            children: [
+              ConditionsTab(
+                startSolving: (newSolver, newSolvingMode) {
+                  setState(() {
+                    solver = newSolver;
+                    solvingMode = newSolvingMode;
+                    currentPage = 1;
+                  });
+                },
+              ),
+              SolutionTab(
+                solver: solver,
+                solvingMode: solvingMode,
+              ),
+            ],
           ))
         ],
       ),

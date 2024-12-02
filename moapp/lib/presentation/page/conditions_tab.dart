@@ -3,8 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:moapp/presentation/widget/dropdown.dart';
 import 'package:molib/molib.dart';
 
+typedef StringMatrix = List<List<String>>;
+
+enum SolvingMode { step, auto }
+
 class ConditionsTab extends StatefulWidget {
-  const ConditionsTab({super.key});
+  const ConditionsTab({super.key, required this.startSolving});
+  final Function(ArtificialSolver, SolvingMode) startSolving;
 
   @override
   State<ConditionsTab> createState() => _ConditionsTabState();
@@ -12,24 +17,49 @@ class ConditionsTab extends StatefulWidget {
 
 class _ConditionsTabState extends State<ConditionsTab> {
   final List<int> funcCoef = [0, 0, 0, 0, 0];
+  final Set<int> errorFuncIndices = {};
+  final Set<(int, int)> errorMatrixIndices = {};
   int varCount = 4;
   int restrictionCount = 3;
-  late final StepMatrix initMatrix = List.generate(restrictionCount,
-      (_) => List.generate(varCount + 1, (_) => Fraction(0, 1)));
-  final MatrixMode matrixMode = MatrixMode.fraction;
-  final Set<int> errorFuncIndexes = {};
+  late final StringMatrix initMatrix = List.generate(
+      restrictionCount, (_) => List.generate(varCount + 1, (_) => "0"));
+  MatrixMode matrixMode = MatrixMode.fraction;
+  BasisMode basisMode = BasisMode.artificial;
+  SolvingMode solvingMode = SolvingMode.auto;
+
+  dynamic tryParseValue(String value) {
+    if (matrixMode == MatrixMode.fraction) {
+      return Fraction.tryParse(value);
+    } else {
+      return double.tryParse(value);
+    }
+  }
 
   void updateRestricionValue(int row, int col, String? value) {
-    if (value == null) {
+    if (value == null || value.isEmpty) {
+      setState(() {
+        errorMatrixIndices.remove((row, col));
+      });
       return;
     }
-    
+    int? parsed = int.tryParse(value);
+
+    if (parsed == null) {
+      setState(() {
+        errorMatrixIndices.add((row, col));
+      });
+      return;
+    }
+    errorMatrixIndices.remove((row, col));
+    setState(() {
+      initMatrix[row][col] = value;
+    });
   }
 
   void updateFuncCoef(int index, String value) {
     if (value.isEmpty) {
       setState(() {
-        errorFuncIndexes.remove(index);
+        errorFuncIndices.remove(index);
       });
       return;
     }
@@ -37,17 +67,16 @@ class _ConditionsTabState extends State<ConditionsTab> {
     final parsed = int.tryParse(value);
     if (parsed == null) {
       setState(() {
-        errorFuncIndexes.add(index);
+        errorFuncIndices.add(index);
       });
       return;
     }
 
-    errorFuncIndexes.remove(index);
+    errorFuncIndices.remove(index);
 
     setState(() {
       funcCoef[index] = parsed;
     });
-    debugPrint(funcCoef.toString());
   }
 
   String? emptyFieldValidator(String? value) {
@@ -67,10 +96,7 @@ class _ConditionsTabState extends State<ConditionsTab> {
     }
     for (var i = 0; i < (parsed - restrictionCount).abs(); i++) {
       if (parsed > restrictionCount) {
-        initMatrix.add(List.generate(
-            varCount + 1,
-            (index) =>
-                (matrixMode == MatrixMode.fraction) ? Fraction(0, 1) : 0.0));
+        initMatrix.add(List.generate(varCount + 1, (index) => "0"));
       } else if (parsed < varCount) {
         initMatrix.remove(initMatrix.last);
       }
@@ -96,9 +122,9 @@ class _ConditionsTabState extends State<ConditionsTab> {
       }
       for (var row in initMatrix) {
         if (parsed > varCount) {
-          row.add((matrixMode == MatrixMode.fraction) ? Fraction(0, 1) : 0.0);
+          row.add("0");
         } else if (parsed < varCount) {
-          row.remove(funcCoef.last);
+          row.remove(row.last);
         }
       }
     }
@@ -132,11 +158,13 @@ class _ConditionsTabState extends State<ConditionsTab> {
       return DataRow(
           cells: List.generate(row.length, (rowIndex) {
         return DataCell(Container(
-          color: (errorFuncIndexes.contains(index))
+          color: (errorMatrixIndices.contains((index, rowIndex)))
               ? Colors.red
               : Colors.transparent,
           child: TextFormField(
-            onChanged: (value) {},
+            onChanged: (value) {
+              updateRestricionValue(index, rowIndex, value);
+            },
             decoration: const InputDecoration(
                 hintText: "0",
                 border: OutlineInputBorder(borderSide: BorderSide.none)),
@@ -144,6 +172,48 @@ class _ConditionsTabState extends State<ConditionsTab> {
         ));
       }));
     });
+  }
+
+  void matrixModeChanged(String value) {
+    if (value == "Обыкновенные") {
+      matrixMode = MatrixMode.fraction;
+    } else {
+      matrixMode = MatrixMode.double;
+    }
+    setState(() {});
+  }
+
+  void basisModeChanged(String value) {
+    if (value == "Исскуственный") {
+      basisMode = BasisMode.artificial;
+    } else {
+      basisMode = BasisMode.artificial;
+    }
+    setState(() {});
+  }
+
+  void solvingModeChanged(String value) {
+    if (value == "Автоматический") {
+      solvingMode = SolvingMode.auto;
+    } else {
+      solvingMode = SolvingMode.step;
+    }
+    setState(() {});
+  }
+
+  void startSolvingClicked() {
+    List<List<int>> matrix = List.generate(
+        initMatrix.length,
+        (row) => List.generate(
+            initMatrix[row].length, (col) => int.parse(initMatrix[row][col])));
+    final solver = ArtificialSolver(
+        mode: matrixMode,
+        basisMode: basisMode,
+        initialVarCount: varCount,
+        initialRestrictionCount: restrictionCount,
+        initRestrictMatrix: matrix,
+        funcCoef: List.from(funcCoef));
+    widget.startSolving(solver, solvingMode);
   }
 
   @override
@@ -181,14 +251,30 @@ class _ConditionsTabState extends State<ConditionsTab> {
                     validator: emptyFieldValidator,
                   ),
                   const Text("Режим решения"),
-                  const Dropdown(items: [
-                    "Автоматический",
-                    "Пошаговый",
-                  ]),
+                  Dropdown(
+                    items: const [
+                      "Автоматический",
+                      "Пошаговый",
+                    ],
+                    onChanged: solvingModeChanged,
+                  ),
                   const Text("Вид дробей"),
-                  const Dropdown(items: ["Обыкновенные", "Десятичные"]),
+                  Dropdown(
+                    items: const ["Обыкновенные", "Десятичные"],
+                    onChanged: matrixModeChanged,
+                  ),
                   const Text("Вид базиса"),
-                  const Dropdown(items: ["Исскуственный", "Выбранный"]),
+                  Dropdown(
+                    items: const ["Исскуственный", "Выбранный"],
+                    onChanged: basisModeChanged,
+                  ),
+                  ElevatedButton(
+                      style: const ButtonStyle(
+                          shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(10))))),
+                      onPressed: startSolvingClicked,
+                      child: const Text("Перейти к решению"))
                 ],
               ),
             )),
@@ -203,7 +289,7 @@ class _ConditionsTabState extends State<ConditionsTab> {
                     DataRow(
                         cells: List.generate(varCount + 1, (index) {
                       return DataCell(Container(
-                        color: (errorFuncIndexes.contains(index))
+                        color: (errorFuncIndices.contains(index))
                             ? Colors.red
                             : Colors.transparent,
                         child: TextFormField(
