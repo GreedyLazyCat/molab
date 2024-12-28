@@ -29,6 +29,12 @@ class SolutionController extends ChangeNotifier {
   void initialStep() {
     if (solver != null) {
       solver?.initialStep();
+      if (solvingMode == SolvingMode.auto) {
+        while (solver!.lastStep.type != StepType.error &&
+            solver!.lastStep.type != StepType.solved) {
+          solver!.nextStep();
+        }
+      }
       notifyListeners();
     }
   }

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 class Dropdown extends StatefulWidget {
-  const Dropdown({super.key, required this.items, this.onChanged});
+  const Dropdown(
+      {super.key, required this.items, this.onChanged, required this.current});
 
   final List<String> items;
   final Function(String)? onChanged;
+  final String current;
 
   @override
   State<Dropdown> createState() => _DropdownState();
@@ -20,9 +22,24 @@ class _DropdownState extends State<Dropdown> {
   }
 
   @override
+  void didUpdateWidget(covariant Dropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.current != widget.current &&
+        mounted &&
+        widget.items.contains(widget.current)) {
+      setState(() {
+        value = widget.current!;
+        if (widget.onChanged != null) {
+          // widget.onChanged!(value);
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return DropdownButton(
-        value: value,
+        value: widget.current,
         items: widget.items
             .map((elem) => DropdownMenuItem(value: elem, child: Text(elem)))
             .toList(),
@@ -33,9 +50,7 @@ class _DropdownState extends State<Dropdown> {
           if (widget.onChanged != null) {
             widget.onChanged!(newValue);
           }
-          setState(() {
-            value = newValue ?? "";
-          });
+          
         });
   }
 }

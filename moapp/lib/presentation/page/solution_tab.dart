@@ -54,9 +54,20 @@ class _SolutionTabState extends State<SolutionTab> {
           child: Row(
             children: [
               ElevatedButton(
-                  onPressed: () {
-                    controller.nextStep();
-                  },
+                  onPressed: (lastStep.type != StepType.solved &&
+                          lastStep.type != StepType.error)
+                      ? () {
+                          controller.nextStep();
+                        }
+                      : null,
+                  child: const Text("Предыдущий шаг")),
+              ElevatedButton(
+                  onPressed: (lastStep.type != StepType.solved &&
+                          lastStep.type != StepType.error)
+                      ? () {
+                          controller.nextStep();
+                        }
+                      : null,
                   child: const Text("Следующий шаг"))
             ],
           ),

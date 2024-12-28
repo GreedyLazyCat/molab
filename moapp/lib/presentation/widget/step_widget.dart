@@ -55,9 +55,11 @@ class _StepWidgetState extends State<StepWidget> {
         final isNotVarCoef = row != (rowCount - 1) && col != (varCount + 1);
         final isNotFinalStep = stepInfo.type != StepType.artificialFinal &&
             stepInfo.type != StepType.solved;
-
+        final stepText = (stepInfo.stepMatrix[row][col - 1] is Fraction)
+            ? stepInfo.stepMatrix[row][col - 1].reduced().toString()
+            : stepInfo.stepMatrix[row][col - 1].toString();
         return DataCell(SelctableCell(
-          text: "${stepInfo.stepMatrix[row][col - 1]}",
+          text: stepText,
           clickable:
               isCurrentStep && stepMode && isNotVarCoef && isNotFinalStep,
           supElem:
@@ -125,7 +127,7 @@ class _SelctableCellState extends State<SelctableCell> {
   @override
   Widget build(BuildContext context) {
     final controller = context.read<SolutionController?>();
-    debugPrint("${widget.cellIndices}  ${widget.supElem}");
+    // debugPrint("${widget.cellIndices}  ${widget.supElem}");
     return InkWell(
       onTap: (widget.clickable)
           ? () {
