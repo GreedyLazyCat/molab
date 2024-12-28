@@ -150,11 +150,14 @@ class ArtificialSolver {
     }
     // newMatrix[restrictionCount][newRowIndices.length] *= -1;
 
+    final stepType = getStepType(
+        newMatrix, newRowIndices, step.colIndices, StepType.artificialFinal);
+
     return StepInfo(
         stepMatrix: newMatrix,
         rowIndices: newRowIndices,
         colIndices: step.colIndices,
-        type: StepType.main);
+        type: stepType);
   }
 
   ///Считает основную матрицу на основе переданного элемента и матрицы
@@ -242,7 +245,7 @@ class ArtificialSolver {
     if (lastStepType == null) {
       for (var col = 0; col < rowIndices.length; col++) {
         final nonZeroElement = _findFirstNonZeroPositiveElemInCol(
-            col, stepMatrix, rowIndices.length);
+            col, stepMatrix, colIndices.length);
         final lastElem = stepMatrix.last[col];
         if (nonZeroElement == null && lastElem < 0) {
           throw SolverException("Функция неограничена снизу");

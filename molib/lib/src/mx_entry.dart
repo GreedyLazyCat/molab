@@ -6,6 +6,7 @@ import 'package:molib/molib.dart';
 ///как натуральные дроби так и вещественные числа
 class MxEntry {
   final dynamic _value;
+  MatrixMode mode = MatrixMode.double;
 
   MxEntry._({
     required dynamic value,
@@ -59,5 +60,16 @@ class MxEntry {
 
   bool operator <=(Object other) {
     throw UnimplementedError();
+  }
+
+  @override
+  String toString() {
+    if (_value is double) {
+      return _value.toString();
+    }
+    if (_value is Fraction) {
+      return _value.reduced().toString();
+    }
+    return "";
   }
 }

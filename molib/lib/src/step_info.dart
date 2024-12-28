@@ -126,4 +126,12 @@ class StepIndices {
 
   @override
   String toString() => 'StepCoord(row: $row, col: $col)';
+
+  @override
+  bool operator ==(Object obj) {
+    if (obj is StepIndices) {
+      return obj.col == col && obj.row == row;
+    }
+    return false;
+  }
 }

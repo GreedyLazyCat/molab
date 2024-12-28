@@ -29,9 +29,16 @@ class Fraction {
   ///Must be in format 'x/y' where x is numerator and y is denominator
   static Fraction parseFraction(String str) {
     final splitted = str.trim().split("/");
+    if (splitted.length == 1) {
+      final parsed = int.tryParse(splitted[0]);
+      if (parsed == null) {
+        throw FractionParseException("Int couldnt be parsed.");
+      }
+      return Fraction(parsed, 1);
+    }
     final newNum = int.tryParse(splitted[0]);
     final newDen = int.tryParse(splitted[1]);
-    if (splitted.length < 2) {
+    if (splitted.length != 2) {
       throw FractionParseException(
           "Not enough elements after splitting by '/'");
     }
@@ -42,6 +49,14 @@ class Fraction {
       throw FractionParseException("Couldnt parse denominator");
     }
     return Fraction(newNum, newDen);
+  }
+
+  static Fraction? tryParse(String value) {
+    try {
+      return parseFraction(value);
+    } catch (_) {
+      return null;
+    }
   }
 
   Fraction reduced() {
