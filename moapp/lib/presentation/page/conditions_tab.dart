@@ -43,6 +43,7 @@ class _ConditionsTabState extends State<ConditionsTab> {
   String matrixModeCurrent = "Обыкновенные";
   String basisModeCurrent = "Исскуственный";
   String solvingModeCurrent = "Автоматический";
+  String taskGoalCurrent = "Минимизировать";
 
   List<int> selectedBasis = [];
 
@@ -220,9 +221,16 @@ class _ConditionsTabState extends State<ConditionsTab> {
     });
   }
 
+  void taskGoalChanged(String value) {
+    setState(() {
+      taskGoalCurrent = value;
+    });
+  }
+
   void basisModeChanged(String value) {
     if (value == "Исскуственный") {
       basisMode = BasisMode.artificial;
+      selectedBasis = [];
     } else {
       basisMode = BasisMode.selected;
     }
@@ -242,7 +250,30 @@ class _ConditionsTabState extends State<ConditionsTab> {
     });
   }
 
+  bool initMatrixIsZero() {
+    for (var row in initMatrix) {
+      for (var elem in row) {
+        if (elem != "0") {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   void startSolvingClicked() {
+    if (errorMatrixIndices.isNotEmpty) {
+      showSnackBar("В матрице есть некорректные значения");
+      return;
+    }
+    if (errorFuncIndices.isNotEmpty) {
+      showSnackBar("В коеффициентах функции есть некорректные значения");
+      return;
+    }
+    if (initMatrixIsZero()) {
+      showSnackBar("Матрица ограничений пуста");
+      return;
+    }
     List<List<int>> matrix = List.generate(
         initMatrix.length,
         (row) => List.generate(
@@ -253,7 +284,13 @@ class _ConditionsTabState extends State<ConditionsTab> {
         initialVarCount: varCount,
         initialRestrictionCount: restrictionCount,
         initRestrictMatrix: matrix,
-        funcCoef: List.from(funcCoef));
+        funcCoef: List.from(funcCoef).map((elem) {
+          if (taskGoalCurrent == "Минимизировать") {
+            return elem as int;
+          } else {
+            return (elem * -1) as int;
+          }
+        }).toList());
     widget.startSolving(
         solver, solvingMode, selectedBasis.map((elem) => elem - 1).toList());
   }
@@ -271,6 +308,7 @@ class _ConditionsTabState extends State<ConditionsTab> {
         final newSolvingMode = conditions["solving_mode"] as String;
         final newMatrixMode = conditions["matrix_mode"] as String;
         final newBasisMode = conditions["basis_mode"] as String;
+        final newTaskGoal = conditions["task_goal"] as String;
         final newInitMatrix = (conditions["init_matrix"] as List<dynamic>);
         final newFuncCoef = (conditions["func_coef"] as List<dynamic>);
         if (!["auto", "step"].contains(newSolvingMode)) {
@@ -296,6 +334,16 @@ class _ConditionsTabState extends State<ConditionsTab> {
           return;
         }
 
+        if (newBasisMode == "selected") {
+          final newSelectedBasis =
+              (conditions["selected_basis"] as List<dynamic>);
+          if (newSelectedBasis.toSet().length != newRestrictionCount) {
+            showSnackBar(
+                "Кол-во выбранных переменных в базисе не равно кол-ву ограничений");
+            return;
+          }
+          selectedBasis = newSelectedBasis.map((elem) => elem as int).toList();
+        }
         for (var row in newInitMatrix) {
           var matrixRow =
               (row as List<dynamic>).map((elem) => elem as int).toList();
@@ -316,6 +364,9 @@ class _ConditionsTabState extends State<ConditionsTab> {
               (newBasisMode == "artificial") ? "Исскуственный" : "Выбранный");
           solvingModeChanged(
               (newSolvingMode == "step") ? "Пошаговый" : "Автоматический");
+          taskGoalChanged((newTaskGoal == "minimize")
+              ? "Минимизировать"
+              : "Максимизировать");
         });
         for (var i = 0; i < newFuncCoef.length; i++) {
           updateFuncCoef(i, newFuncCoef[i].toString());
@@ -330,10 +381,9 @@ class _ConditionsTabState extends State<ConditionsTab> {
         }
       } on FormatException {
         showSnackBar("Неправильный формат файла");
+      } on TypeError {
+        showSnackBar("Неправильный формат файла");
       }
-      // on TypeError {
-      //   showSnackBar("Неправильный формат числовых значений");
-      // }
     }
   }
 
@@ -356,6 +406,11 @@ class _ConditionsTabState extends State<ConditionsTab> {
       toWrite["solving_mode"] = solvingMode.name;
       toWrite["matrix_mode"] = matrixMode.name;
       toWrite["basis_mode"] = basisMode.name;
+      toWrite["task_goal"] =
+          (taskGoalCurrent == "Минимизировать") ? "minimize" : "maximize";
+      if (basisMode == BasisMode.selected) {
+        toWrite["selected_basis"] = selectedBasis;
+      }
 
       file.writeAsString(jsonEncode(toWrite));
       /*
@@ -430,6 +485,12 @@ class _ConditionsTabState extends State<ConditionsTab> {
                     current: basisModeCurrent,
                     onChanged: basisModeChanged,
                   ),
+                  const Text("Цель"),
+                  Dropdown(
+                    items: const ["Минимизировать", "Максимизировать"],
+                    current: taskGoalCurrent,
+                    onChanged: taskGoalChanged,
+                  ),
                   ElevatedButton(
                       style: const ButtonStyle(
                           shape: WidgetStatePropertyAll(RoundedRectangleBorder(
@@ -470,6 +531,7 @@ class _ConditionsTabState extends State<ConditionsTab> {
                 children: [
                   if (basisMode == BasisMode.selected)
                     SelectBasis(
+                      selectedBasis: selectedBasis,
                       basisVarCount: restrictionCount,
                       varCount: varCount,
                       onChange: (values) {

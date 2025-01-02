@@ -8,3 +8,4 @@ export 'src/artificial_solver.dart'
     show ArtificialSolver, MatrixMode, BasisMode, StepMatrix;
 export 'src/mx_entry.dart' show MxEntry;
 export 'src/step_info.dart';
+export 'src/exception/solver_exception.dart';

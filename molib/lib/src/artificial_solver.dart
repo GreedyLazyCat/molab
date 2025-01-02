@@ -111,6 +111,15 @@ class ArtificialSolver {
     history.add(newStep);
   }
 
+  void prevStep() {
+    if (history.isNotEmpty) {
+      history.remove(history.last);
+      if (history.isNotEmpty) {
+        history.last.elemCoord = null;
+      }
+    }
+  }
+
   StepInfo makeStepAfterArtificialFinal(StepInfo step) {
     if (step.type != StepType.artificialFinal) {
       throw SolverException("Шаг не финальный после нахождения базиса ");
@@ -247,7 +256,8 @@ class ArtificialSolver {
         final nonZeroElement = _findFirstNonZeroPositiveElemInCol(
             col, stepMatrix, colIndices.length);
         final lastElem = stepMatrix.last[col];
-        if (nonZeroElement == null && lastElem < 0) {
+        if ((nonZeroElement == null && lastElem < 0) &&
+            basisMode != BasisMode.selected) {
           throw SolverException("Функция неограничена снизу");
         }
       }
@@ -284,6 +294,15 @@ class ArtificialSolver {
         lastStepType == StepType.main ||
         (lastStepType == StepType.initial && basisMode == BasisMode.selected)) {
       if (isStepHasNegativeFuncCoef(stepMatrix, rowIndices.length)) {
+        for (var col = 0; col < rowIndices.length; col++) {
+          final nonZeroElement = _findFirstNonZeroPositiveElemInCol(
+              col, stepMatrix, colIndices.length);
+          final lastElem = stepMatrix.last[col];
+          if ((nonZeroElement == null && lastElem < 0) &&
+              basisMode != BasisMode.selected) {
+            return StepType.error;
+          }
+        }
         return StepType.main;
       }
       return StepType.solved;
@@ -403,7 +422,8 @@ class ArtificialSolver {
     }
 
     // Извлекаем строки, содержащие ненулевые элементы
-    return A.where((row) => row.any((x) => x.abs() > 0)).toList();
+    // return A.where((row) => row.any((x) => x.abs() > 0)).toList();
+    return A;
   }
 
   ///Возвращает опорный элемент в столбце.
@@ -442,7 +462,7 @@ class ArtificialSolver {
     final elemDividedValue = stepMatrix[elemIndices.row][varCount] / elemValue;
     final funcColCoef = stepMatrix[restrictionCount][elemIndices.col];
 
-    if (funcColCoef > 0) {
+    if (funcColCoef >= 0) {
       return "Опорный элемент можно выбирать только в столбце, где коэффициент функции отрицателен.";
     }
 

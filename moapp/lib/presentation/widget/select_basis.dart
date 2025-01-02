@@ -6,10 +6,12 @@ class SelectBasis extends StatefulWidget {
       {super.key,
       required this.basisVarCount,
       required this.varCount,
-      required this.onChange});
+      required this.onChange,
+      this.selectedBasis});
 
   final int basisVarCount;
   final int varCount;
+  final List<int>? selectedBasis;
   final Function(List<int>) onChange;
 
   @override
@@ -43,14 +45,33 @@ class _SelectBasisState extends State<SelectBasis> {
   @override
   void initState() {
     super.initState();
+    if (widget.selectedBasis == null ||
+        (widget.selectedBasis != null && widget.selectedBasis!.isEmpty)) {
+      currentValues = List.generate(widget.basisVarCount, (i) => i + 1);
+      widget.onChange(currentValues);
+    } else {
+      currentValues = widget.selectedBasis!;
+      widget.onChange(currentValues);
+    }
   }
 
   @override
   void didUpdateWidget(covariant SelectBasis oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    currentValues = List.generate(widget.basisVarCount, (i) => i + 1);
     vars = List.generate(widget.varCount, (i) => i + 1).toSet();
+    if (widget.selectedBasis != null) {
+      if (widget.selectedBasis!.length != widget.basisVarCount) {
+        setState(() {
+          currentValues = List.generate(widget.basisVarCount, (i) => i + 1);
+        });
+        widget.onChange(currentValues);
+        return;
+      }
+      setState(() {
+        currentValues = widget.selectedBasis!;
+      });
+    }
   }
 
   @override

@@ -17,6 +17,14 @@ class SolutionController extends ChangeNotifier {
   void nextStep() {
     if (solver != null) {
       solver?.nextStep(currentElem);
+      currentElem = null;
+      notifyListeners();
+    }
+  }
+
+  void prevStep() {
+    if (solver != null) {
+      solver?.prevStep();
       notifyListeners();
     }
   }

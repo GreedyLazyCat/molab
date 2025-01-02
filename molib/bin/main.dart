@@ -13,24 +13,23 @@ void main() {
   // ];
 
   final initRestrictMatrix = [
-    [2, -1, 1, -2, 1, 1, 1],
-    [-3, 1, 0, 1, -1, 1, 2],
-    [-5, 1, -2, 1, 0, -1, 3],
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
   ];
 
-  final funcCoef = [-5, 2, -2, 4, -1, -2, 0];
+  final funcCoef = [1, 2, 0, 9];
   // final funcCoef = [-5, 2, -2, 4, -1, -2, 0];
 
   final solver = ArtificialSolver(
       mode: MatrixMode.fraction,
       basisMode: BasisMode.selected,
-      initialVarCount: 6,
-      initialRestrictionCount: 3,
+      initialVarCount: 3,
+      initialRestrictionCount: 2,
       initRestrictMatrix: initRestrictMatrix,
       funcCoef: funcCoef);
 
   try {
-    solver.initialStep([0, 1, 2]);
+    solver.initialStep([0, 1]);
     solver.nextStep();
     // solver.nextStep(StepIndices(row: 1, col: 1));
     // solver.nextStep(StepIndices(row: 1, col: 2));

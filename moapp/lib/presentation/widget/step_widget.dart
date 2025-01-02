@@ -26,7 +26,8 @@ class _StepWidgetState extends State<StepWidget> {
         return const DataColumn(label: Text("b"));
       }
 
-      return DataColumn(label: Text("x$index"));
+      return DataColumn(
+          label: Text("x${widget.stepInfo.rowIndices[index - 1]}"));
     });
   }
 
@@ -55,13 +56,17 @@ class _StepWidgetState extends State<StepWidget> {
         final isNotVarCoef = row != (rowCount - 1) && col != (varCount + 1);
         final isNotFinalStep = stepInfo.type != StepType.artificialFinal &&
             stepInfo.type != StepType.solved;
+        final isNotNullOrNegative = (stepInfo.stepMatrix[row][col - 1] > 0);
         final stepText = (stepInfo.stepMatrix[row][col - 1] is Fraction)
             ? stepInfo.stepMatrix[row][col - 1].reduced().toString()
             : stepInfo.stepMatrix[row][col - 1].toString();
         return DataCell(SelctableCell(
           text: stepText,
-          clickable:
-              isCurrentStep && stepMode && isNotVarCoef && isNotFinalStep,
+          clickable: isCurrentStep &&
+              stepMode &&
+              isNotVarCoef &&
+              isNotFinalStep &&
+              isNotNullOrNegative,
           supElem:
               (isCurrentStep) ? controller.currentElem : stepInfo.elemCoord,
           cellIndices: StepIndices(row: row, col: col - 1),
@@ -82,6 +87,8 @@ class _StepWidgetState extends State<StepWidget> {
         return "Начальный шаг решения";
       case StepType.error:
         return widget.stepInfo.error ?? "Ошибка";
+      case StepType.solved:
+        return "Система решена";
       default:
         return "Нет описания для тип ${widget.stepInfo.type.name}";
     }
@@ -134,13 +141,19 @@ class _SelctableCellState extends State<SelctableCell> {
               onTap(controller);
             }
           : null,
-      child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: (widget.cellIndices == widget.supElem)
-            ? Colors.greenAccent
-            : Colors.transparent,
-        child: Text(widget.text),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 25),
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: (widget.cellIndices == widget.supElem)
+              ? Colors.greenAccent
+              : Colors.transparent,
+          child: Text(
+            widget.text,
+            textAlign: TextAlign.center,
+          ),
+        ),
       ),
     );
   }
