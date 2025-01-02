@@ -59,6 +59,10 @@ class Fraction {
     }
   }
 
+  double abs() {
+    return (_numerator / _denominator).abs();
+  }
+
   Fraction reduced() {
     final gcd = _numerator.gcd(_denominator);
     final reNum = _numerator / gcd;
@@ -88,9 +92,9 @@ class Fraction {
 
   Fraction operator +(Object other) {
     if (other is Fraction) {
-      return _add(other);
+      return _add(other).reduced();
     } else if (other is int) {
-      return _add(Fraction(other, 1));
+      return _add(Fraction(other, 1)).reduced();
     } else {
       throw Exception("Fraction can't be added to this type of object");
     }
@@ -122,11 +126,11 @@ class Fraction {
 
   Fraction operator -(Object other) {
     if (other is Fraction) {
-      return _sub(other);
+      return _sub(other).reduced();
     } else if (other is int) {
-      return _sub(Fraction(other, 1));
+      return _sub(Fraction(other, 1)).reduced();
     } else if (other is num) {
-      return _sub(Fraction(other.toInt(), 1));
+      return _sub(Fraction(other.toInt(), 1)).reduced();
     } else {
       throw Exception("Fraction can't be added to this type of object");
     }

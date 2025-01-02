@@ -332,6 +332,74 @@ class ArtificialSolver {
     return null;
   }
 
+  StepMatrix gaussBasis(StepMatrix matrix, {List<int>? basisColumns}) {
+    // Создаем копию матрицы для работы
+    StepMatrix A = matrix.map((row) => List<dynamic>.from(row)).toList();
+    int rows = A.length;
+    int cols = rows > 0 ? A[0].length : 0;
+
+    basisColumns ??= List.generate(cols, (index) => index);
+
+    int rowIdx = 0;
+    for (int col in basisColumns) {
+      if (col >= cols) {
+        throw ArgumentError("Индекс столбца $col выходит за пределы матрицы.");
+      }
+
+      // Найти строку с максимальным элементом в текущем столбце
+      int maxRow = rowIdx;
+      double maxValue = A[rowIdx][col].abs();
+      for (int i = rowIdx + 1; i < rows; i++) {
+        if (A[i][col].abs() > maxValue) {
+          maxRow = i;
+          maxValue = A[i][col].abs();
+        }
+      }
+
+      if (maxValue == 0) {
+        // Столбец состоит из нулей, пропускаем
+        continue;
+      }
+
+      // Поменять строки местами
+      List<dynamic> temp = A[rowIdx];
+      A[rowIdx] = A[maxRow];
+      A[maxRow] = temp;
+
+      // Нормализуем ведущий элемент до 1
+      final leadingVal = A[rowIdx][col];
+      A[rowIdx] = A[rowIdx].map((x) => x / leadingVal).toList();
+
+      // Обнуляем элементы ниже ведущего
+      for (int i = rowIdx + 1; i < rows; i++) {
+        final factor = A[i][col];
+        A[i] = List.generate(cols, (j) => A[i][j] - factor * A[rowIdx][j]);
+      }
+
+      rowIdx++;
+      if (rowIdx >= rows) break;
+    }
+
+    // Обратный ход для приведения к канонической ступенчатой форме
+    for (int col in basisColumns) {
+      for (int i = rowIdx - 1; i >= 0; i--) {
+        // Найти ведущий столбец в строке
+        // int? leadingCol = A[i].indexWhere((val) => val.abs() > 0);
+        // if (leadingCol == -1)
+        //   continue; // Если ведущего элемента нет, пропускаем строку
+
+        // Обнуляем элементы выше ведущего
+        for (int j = 0; j < i; j++) {
+          final factor = A[j][col];
+          A[j] = List.generate(cols, (k) => A[j][k] - factor * A[i][k]);
+        }
+      }
+    }
+
+    // Извлекаем строки, содержащие ненулевые элементы
+    return A.where((row) => row.any((x) => x.abs() > 0)).toList();
+  }
+
   ///Возвращает опорный элемент в столбце.
   ///В случае, если не найден - [null]
   StepIndices? findSupElementInColumn(int col) {
@@ -440,7 +508,39 @@ class ArtificialSolver {
     history.add(step);
   }
 
-  void initialStep() {
+  void initialSelectedStep([List<int>? basis]) {
+    if (basis == null) {
+      return;
+    }
+    final calculatedMatrix =
+        gaussBasis(convertInitialMatrix(), basisColumns: basis);
+    StepMatrix newStepMatrix = [];
+    final rowIndices = <int>[];
+    for (var row in calculatedMatrix) {
+      newStepMatrix.add([]);
+      for (var i = 0; i < row.length; i++) {
+        if (basis.contains(i)) {
+          continue;
+        }
+        newStepMatrix.last.add(row[i]);
+        if (rowIndices.length != (initialVarCount - basis.length)) {
+          rowIndices.add(i + 1);
+        }
+      }
+    }
+    final colIndices = List.generate(basis.length, (index) => basis[index] + 1);
+
+    // final stepType =
+    //     getStepType(stepMatrix, rowIndices, colIndices, lastStepType);
+
+    history.add(StepInfo(
+        stepMatrix: newStepMatrix,
+        rowIndices: rowIndices,
+        colIndices: colIndices,
+        type: StepType.main));
+  }
+
+  void initialStep([List<int>? basis]) {
     switch (basisMode) {
       case BasisMode.artificial:
         initialArtificialStep();
@@ -448,6 +548,12 @@ class ArtificialSolver {
       case BasisMode.selected:
         //Если базисные переменные выбираются - нужно сначала
         //посчитать этот самый базис
+        if (basis != null) {
+          initialSelectedStep(basis);
+        } else {
+          throw SolverException(
+              "Если режим решения выбранный базис, то нужно передать индексы выбранного базиса");
+        }
         break;
     }
   }
