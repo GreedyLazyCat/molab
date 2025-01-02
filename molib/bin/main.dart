@@ -18,7 +18,7 @@ void main() {
     [-5, 1, -2, 1, 0, -1, 3],
   ];
 
-  final funcCoef = [1, 1, 1, 1, 1, 1];
+  final funcCoef = [-5, 2, -2, 4, -1, -2, 0];
   // final funcCoef = [-5, 2, -2, 4, -1, -2, 0];
 
   final solver = ArtificialSolver(
@@ -30,8 +30,8 @@ void main() {
       funcCoef: funcCoef);
 
   try {
-    solver.initialStep([2, 1, 4]);
-    // solver.nextStep();
+    solver.initialStep([0, 1, 2]);
+    solver.nextStep();
     // solver.nextStep(StepIndices(row: 1, col: 1));
     // solver.nextStep(StepIndices(row: 1, col: 2));
   } on SolverException catch (e) {

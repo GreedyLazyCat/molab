@@ -254,7 +254,8 @@ class ArtificialSolver {
       return StepType.initial;
     }
     if (lastStepType == StepType.artificial ||
-        lastStepType == StepType.initial) {
+        (lastStepType == StepType.initial &&
+            basisMode == BasisMode.artificial)) {
       final lastRow = stepMatrix.last;
       if (isStepHasNegativeFuncCoef(stepMatrix, rowIndices.length)) {
         return StepType.artificial;
@@ -276,7 +277,8 @@ class ArtificialSolver {
       }
     }
     if (lastStepType == StepType.artificialFinal ||
-        lastStepType == StepType.main) {
+        lastStepType == StepType.main ||
+        (lastStepType == StepType.initial && basisMode == BasisMode.selected)) {
       if (isStepHasNegativeFuncCoef(stepMatrix, rowIndices.length)) {
         return StepType.main;
       }
@@ -514,8 +516,16 @@ class ArtificialSolver {
     }
     final calculatedMatrix =
         gaussBasis(convertInitialMatrix(), basisColumns: basis);
+
+    // for (var row in calculatedMatrix) {
+    //   for (var elem in row) {
+    //     stdout.write("${elem.reduced().toString()}, ");
+    //   }
+    //   print("");
+    // }
     StepMatrix newStepMatrix = [];
     final rowIndices = <int>[];
+    final colIndices = List.generate(basis.length, (index) => basis[index] + 1);
     for (var row in calculatedMatrix) {
       newStepMatrix.add([]);
       for (var i = 0; i < row.length; i++) {
@@ -528,16 +538,29 @@ class ArtificialSolver {
         }
       }
     }
-    final colIndices = List.generate(basis.length, (index) => basis[index] + 1);
 
-    // final stepType =
-    //     getStepType(stepMatrix, rowIndices, colIndices, lastStepType);
+    final lastRow = [];
+
+    for (var col = 0; col < (rowIndices.length + 1); col++) {
+      dynamic colSum = (mode == MatrixMode.fraction) ? Fraction(0, 1) : 0;
+      for (var row = 0; row < colIndices.length; row++) {
+        final coefIndex = colIndices[row] - 1;
+        colSum += newStepMatrix[row][col] * funcCoef[coefIndex] * -1;
+      }
+      final addition = (col != rowIndices.length)
+          ? funcCoef[rowIndices[col] - 1]
+          : funcCoef[funcCoef.length - 1];
+      lastRow.add(colSum + addition);
+    }
+    newStepMatrix.add(lastRow);
+
+    final stepType = getStepType(newStepMatrix, rowIndices, colIndices, null);
 
     history.add(StepInfo(
         stepMatrix: newStepMatrix,
         rowIndices: rowIndices,
         colIndices: colIndices,
-        type: StepType.main));
+        type: stepType));
   }
 
   void initialStep([List<int>? basis]) {
