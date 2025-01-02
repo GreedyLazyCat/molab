@@ -251,6 +251,10 @@ class ArtificialSolver {
           throw SolverException("Функция неограничена снизу");
         }
       }
+      if (!isStepHasNegativeFuncCoef(stepMatrix, rowIndices.length) &&
+          basisMode == BasisMode.selected) {
+        return StepType.solved;
+      }
       return StepType.initial;
     }
     if (lastStepType == StepType.artificial ||

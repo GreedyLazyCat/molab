@@ -18,7 +18,7 @@ class _MainPageState extends State<MainPage> {
   ArtificialSolver? solver;
   SolutionController? solutionController;
 
-  void startSolving(newSolver, newSolvingMode) {
+  void startSolving(ArtificialSolver newSolver, newSolvingMode,List<int> selectedBasis) {
     setState(() {
       solver = newSolver;
       solvingMode = newSolvingMode;
@@ -26,8 +26,12 @@ class _MainPageState extends State<MainPage> {
 
       solutionController =
           SolutionController(solver: solver, solvingMode: newSolvingMode);
-      solutionController?.initialStep();
     });
+    if (newSolver.basisMode == BasisMode.artificial) {
+      solutionController?.initialStep();
+    } else {
+      solutionController?.initialStep(selectedBasis);
+    }
   }
 
   @override

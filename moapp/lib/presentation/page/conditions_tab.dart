@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:moapp/presentation/widget/dropdown.dart';
+import 'package:moapp/presentation/widget/select_basis.dart';
 import 'package:molib/molib.dart';
 
 typedef StringMatrix = List<List<String>>;
@@ -14,7 +15,7 @@ enum SolvingMode { step, auto }
 
 class ConditionsTab extends StatefulWidget {
   const ConditionsTab({super.key, required this.startSolving});
-  final Function(ArtificialSolver, SolvingMode) startSolving;
+  final Function(ArtificialSolver, SolvingMode, List<int>) startSolving;
 
   @override
   State<ConditionsTab> createState() => _ConditionsTabState();
@@ -42,6 +43,8 @@ class _ConditionsTabState extends State<ConditionsTab> {
   String matrixModeCurrent = "Обыкновенные";
   String basisModeCurrent = "Исскуственный";
   String solvingModeCurrent = "Автоматический";
+
+  List<int> selectedBasis = [];
 
   dynamic tryParseValue(String value) {
     if (matrixMode == MatrixMode.fraction) {
@@ -221,7 +224,7 @@ class _ConditionsTabState extends State<ConditionsTab> {
     if (value == "Исскуственный") {
       basisMode = BasisMode.artificial;
     } else {
-      basisMode = BasisMode.artificial;
+      basisMode = BasisMode.selected;
     }
     setState(() {
       basisModeCurrent = value;
@@ -251,7 +254,8 @@ class _ConditionsTabState extends State<ConditionsTab> {
         initialRestrictionCount: restrictionCount,
         initRestrictMatrix: matrix,
         funcCoef: List.from(funcCoef));
-    widget.startSolving(solver, solvingMode);
+    widget.startSolving(
+        solver, solvingMode, selectedBasis.map((elem) => elem - 1).toList());
   }
 
   void openFileSelectorClicked() async {
@@ -464,6 +468,14 @@ class _ConditionsTabState extends State<ConditionsTab> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (basisMode == BasisMode.selected)
+                    SelectBasis(
+                      basisVarCount: restrictionCount,
+                      varCount: varCount,
+                      onChange: (values) {
+                        selectedBasis = values;
+                      },
+                    ),
                   const Text("Целевая функция"),
                   DataTable(columns: generateTableHeader(), rows: [
                     DataRow(
