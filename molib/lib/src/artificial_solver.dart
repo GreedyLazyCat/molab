@@ -158,15 +158,21 @@ class ArtificialSolver {
       }
     }
     // newMatrix[restrictionCount][newRowIndices.length] *= -1;
-
-    final stepType = getStepType(
-        newMatrix, newRowIndices, step.colIndices, StepType.artificialFinal);
-
+    StepType? stepType;
+    String? error;
+    try {
+      stepType = getStepType(
+          newMatrix, newRowIndices, step.colIndices, StepType.artificialFinal);
+    } on SolverException catch (e) {
+      stepType = StepType.error;
+      error = e.message;
+    }
     return StepInfo(
         stepMatrix: newMatrix,
         rowIndices: newRowIndices,
         colIndices: step.colIndices,
-        type: stepType);
+        type: stepType,
+        error: error);
   }
 
   ///Считает основную матрицу на основе переданного элемента и матрицы
@@ -252,18 +258,18 @@ class ArtificialSolver {
   StepType getStepType(StepMatrix stepMatrix, List<int> rowIndices,
       List<int> colIndices, StepType? lastStepType) {
     if (lastStepType == null) {
-      for (var col = 0; col < rowIndices.length; col++) {
-        final nonZeroElement = _findFirstNonZeroPositiveElemInCol(
-            col, stepMatrix, colIndices.length);
-        final lastElem = stepMatrix.last[col];
-        if ((nonZeroElement == null && lastElem < 0) &&
-            basisMode != BasisMode.selected) {
-          throw SolverException("Функция неограничена снизу");
-        }
-      }
+      
       if (!isStepHasNegativeFuncCoef(stepMatrix, rowIndices.length) &&
           basisMode == BasisMode.selected) {
         return StepType.solved;
+      }
+for (var col = 0; col < rowIndices.length; col++) {
+        final nonZeroElement = _findFirstNonZeroPositiveElemInCol(
+            col, stepMatrix, colIndices.length);
+        final lastElem = stepMatrix.last[col];
+        if ((nonZeroElement == null && lastElem < 0)) {
+          throw SolverException("Функция неограничена снизу");
+        }
       }
       return StepType.initial;
     }
@@ -300,7 +306,7 @@ class ArtificialSolver {
           final lastElem = stepMatrix.last[col];
           if ((nonZeroElement == null && lastElem < 0) &&
               basisMode != BasisMode.selected) {
-            return StepType.error;
+            throw SolverException("Функция негораничена снизу");
           }
         }
         return StepType.main;
@@ -577,14 +583,22 @@ class ArtificialSolver {
       lastRow.add(colSum + addition);
     }
     newStepMatrix.add(lastRow);
+    StepType? stepType;
+    String? error;
 
-    final stepType = getStepType(newStepMatrix, rowIndices, colIndices, null);
+    try {
+      stepType = getStepType(newStepMatrix, rowIndices, colIndices, null);
+    } on SolverException catch (e) {
+      stepType = StepType.error;
+      error = e.message;
+    }
 
     history.add(StepInfo(
         stepMatrix: newStepMatrix,
         rowIndices: rowIndices,
         colIndices: colIndices,
-        type: stepType));
+        type: stepType,
+        error: error));
   }
 
   void initialStep([List<int>? basis]) {
