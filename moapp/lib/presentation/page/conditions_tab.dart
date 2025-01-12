@@ -525,44 +525,49 @@ class _ConditionsTabState extends State<ConditionsTab> {
             )),
         Flexible(
             flex: 6,
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (basisMode == BasisMode.selected)
-                    SelectBasis(
-                      selectedBasis: selectedBasis,
-                      basisVarCount: restrictionCount,
-                      varCount: varCount,
-                      onChange: (values) {
-                        selectedBasis = values;
-                      },
-                    ),
-                  const Text("Целевая функция"),
-                  DataTable(columns: generateTableHeader(), rows: [
-                    DataRow(
-                        cells: List.generate(varCount + 1, (index) {
-                      return DataCell(Container(
-                        color: (errorFuncIndices.contains(index))
-                            ? Colors.red
-                            : Colors.transparent,
-                        child: TextFormField(
-                          controller: funcCoefControllers[index],
-                          onChanged: (value) {
-                            updateFuncCoef(index, value);
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SingleChildScrollView(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (basisMode == BasisMode.selected)
+                        SelectBasis(
+                          selectedBasis: selectedBasis,
+                          basisVarCount: restrictionCount,
+                          varCount: varCount,
+                          onChange: (values) {
+                            selectedBasis = values;
                           },
-                          decoration: const InputDecoration(
-                              hintText: "0",
-                              border: OutlineInputBorder(
-                                  borderSide: BorderSide.none)),
                         ),
-                      ));
-                    }))
-                  ]),
-                  const Text("Ограничения"),
-                  DataTable(
-                      columns: generateTableHeader(), rows: generateDataRows()),
-                ],
+                      const Text("Целевая функция"),
+                      DataTable(columns: generateTableHeader(), rows: [
+                        DataRow(
+                            cells: List.generate(varCount + 1, (index) {
+                          return DataCell(Container(
+                            color: (errorFuncIndices.contains(index))
+                                ? Colors.red
+                                : Colors.transparent,
+                            child: TextFormField(
+                              controller: funcCoefControllers[index],
+                              onChanged: (value) {
+                                updateFuncCoef(index, value);
+                              },
+                              decoration: const InputDecoration(
+                                  hintText: "0",
+                                  border: OutlineInputBorder(
+                                      borderSide: BorderSide.none)),
+                            ),
+                          ));
+                        }))
+                      ]),
+                      const Text("Ограничения"),
+                      DataTable(
+                          columns: generateTableHeader(), rows: generateDataRows()),
+                    ],
+                  ),
+                ),
               ),
             ))
       ],
