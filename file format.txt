@@ -1,8 +1,0 @@
-{
- 	"restriction_count":2,
- 	"var_count":3,
-  	"solving_mode": "step",
-  	"matrix_mode": "double",
-  	"basis_mode": "artificial",
-  	"init_matrix": []
-}

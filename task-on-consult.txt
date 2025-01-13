@@ -1,0 +1,1 @@
+{"init_matrix":[[1,0,3,4,5],[0,2,8,6,9]],"func_coef":[-1,-1,-1,-1,0],"restriction_count":2,"var_count":4,"solving_mode":"step","matrix_mode":"fraction","basis_mode":"artificial","task_goal":"minimize"}
